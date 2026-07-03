@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MetasRouteImport } from './routes/metas'
 import { Route as ComprasRouteImport } from './routes/compras'
 import { Route as IndexRouteImport } from './routes/index'
 
+const MetasRoute = MetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ComprasRoute = ComprasRouteImport.update({
   id: '/compras',
   path: '/compras',
@@ -26,31 +32,42 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/metas': typeof MetasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/metas': typeof MetasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/metas': typeof MetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/compras'
+  fullPaths: '/' | '/compras' | '/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/compras'
-  id: '__root__' | '/' | '/compras'
+  to: '/' | '/compras' | '/metas'
+  id: '__root__' | '/' | '/compras' | '/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComprasRoute: typeof ComprasRoute
+  MetasRoute: typeof MetasRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/metas': {
+      id: '/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof MetasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/compras': {
       id: '/compras'
       path: '/compras'
@@ -71,6 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComprasRoute: ComprasRoute,
+  MetasRoute: MetasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
