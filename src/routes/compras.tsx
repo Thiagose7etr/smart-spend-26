@@ -132,10 +132,10 @@ function ComprasPage() {
         ano: info?.ano ?? null,
       };
       if (f.id) {
-        const { error } = await supabase.from("compras" as never).update(payload).eq("id", f.id);
+        const { error } = await sbFrom("compras").update(payload).eq("id", f.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("compras" as never).insert(payload);
+        const { error } = await sbFrom("compras").insert(payload);
         if (error) throw error;
       }
     },
@@ -150,7 +150,7 @@ function ComprasPage() {
 
   const excluir = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("compras" as never).delete().eq("id", id);
+      const { error } = await sbFrom("compras").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
