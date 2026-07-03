@@ -82,8 +82,7 @@ function ComprasPage() {
   const { data: compras = [], isLoading } = useQuery({
     queryKey: ["compras", "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("compras" as never)
+      const { data, error } = await sbFrom("compras")
         .select("*")
         .order("data_emissao", { ascending: false })
         .limit(5000);

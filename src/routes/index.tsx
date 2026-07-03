@@ -58,8 +58,7 @@ function DashboardPage() {
   const { data: compras = [] } = useQuery({
     queryKey: ["compras", "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("compras" as never)
+      const { data, error } = await sbFrom("compras")
         .select("*")
         .order("data_emissao", { ascending: false });
       if (error) throw error;
@@ -70,8 +69,7 @@ function DashboardPage() {
   const { data: metas = [] } = useQuery({
     queryKey: ["metas", ano],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("metas" as never)
+      const { data, error } = await sbFrom("metas")
         .select("*")
         .eq("ano", ano);
       if (error) throw error;
