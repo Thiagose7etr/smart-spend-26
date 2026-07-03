@@ -9,8 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MetasRouteImport } from './routes/metas'
+import { Route as GuinchoRouteImport } from './routes/guincho'
+import { Route as FrotasRouteImport } from './routes/frotas'
+import { Route as ComprasRouteImport } from './routes/compras'
+import { Route as CombustivelRouteImport } from './routes/combustivel'
 import { Route as IndexRouteImport } from './routes/index'
 
+const MetasRoute = MetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuinchoRoute = GuinchoRouteImport.update({
+  id: '/guincho',
+  path: '/guincho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrotasRoute = FrotasRouteImport.update({
+  id: '/frotas',
+  path: '/frotas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComprasRoute = ComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CombustivelRoute = CombustivelRouteImport.update({
+  id: '/combustivel',
+  path: '/combustivel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +49,96 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/combustivel': typeof CombustivelRoute
+  '/compras': typeof ComprasRoute
+  '/frotas': typeof FrotasRoute
+  '/guincho': typeof GuinchoRoute
+  '/metas': typeof MetasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/combustivel': typeof CombustivelRoute
+  '/compras': typeof ComprasRoute
+  '/frotas': typeof FrotasRoute
+  '/guincho': typeof GuinchoRoute
+  '/metas': typeof MetasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/combustivel': typeof CombustivelRoute
+  '/compras': typeof ComprasRoute
+  '/frotas': typeof FrotasRoute
+  '/guincho': typeof GuinchoRoute
+  '/metas': typeof MetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/combustivel'
+    | '/compras'
+    | '/frotas'
+    | '/guincho'
+    | '/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/combustivel' | '/compras' | '/frotas' | '/guincho' | '/metas'
+  id:
+    | '__root__'
+    | '/'
+    | '/combustivel'
+    | '/compras'
+    | '/frotas'
+    | '/guincho'
+    | '/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CombustivelRoute: typeof CombustivelRoute
+  ComprasRoute: typeof ComprasRoute
+  FrotasRoute: typeof FrotasRoute
+  GuinchoRoute: typeof GuinchoRoute
+  MetasRoute: typeof MetasRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/metas': {
+      id: '/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof MetasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guincho': {
+      id: '/guincho'
+      path: '/guincho'
+      fullPath: '/guincho'
+      preLoaderRoute: typeof GuinchoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frotas': {
+      id: '/frotas'
+      path: '/frotas'
+      fullPath: '/frotas'
+      preLoaderRoute: typeof FrotasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compras': {
+      id: '/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof ComprasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/combustivel': {
+      id: '/combustivel'
+      path: '/combustivel'
+      fullPath: '/combustivel'
+      preLoaderRoute: typeof CombustivelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +151,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CombustivelRoute: CombustivelRoute,
+  ComprasRoute: ComprasRoute,
+  FrotasRoute: FrotasRoute,
+  GuinchoRoute: GuinchoRoute,
+  MetasRoute: MetasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
