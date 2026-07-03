@@ -87,8 +87,11 @@ export function mesFromDate(d: string | Date | null | undefined): { mes: string;
   return { mes: MESES[date.getMonth()], ano: date.getFullYear() };
 }
 
-export function sb() {
-  // Untyped access for tables missing from generated types
+// Untyped table accessor for tables missing from generated types.
+// Usage: sbFrom("compras").select("*") — returns the Supabase query builder as any.
+import { supabase } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function sbFrom(name: string): any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return import("@/integrations/supabase/client").then((m) => m.supabase as any);
+  return (supabase as any).from(name);
 }
