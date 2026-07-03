@@ -85,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho.",
       },
       { name: "author", content: "CustoControl" },
-      { property: "og:title", content: "CustoControl — Controle de Compras" },
+      { property: "og:title", content: "CustoControl — Controle de Compras e Frota" },
       {
         property: "og:description",
         content:
@@ -93,6 +93,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "CustoControl — Controle de Compras e Frota" },
+      { name: "description", content: "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho." },
+      { property: "og:description", content: "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho." },
+      { name: "twitter:description", content: "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2c9f1d67-e872-43fb-b8f0-fcecfe9ccf4f/id-preview-f8458b08--ff92b845-1c04-49d4-97b3-0fcb17c34875.lovable.app-1783107550899.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2c9f1d67-e872-43fb-b8f0-fcecfe9ccf4f/id-preview-f8458b08--ff92b845-1c04-49d4-97b3-0fcb17c34875.lovable.app-1783107550899.png" },
     ],
     links: [
       {
