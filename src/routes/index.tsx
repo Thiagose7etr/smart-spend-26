@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -18,7 +18,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { fmtBRL, MESES, type Compra, type Meta } from "@/lib/db-types";
+import { fmtBRL, MESES, sbFrom, type Compra, type Meta } from "@/lib/db-types";
 import {
   TrendingUp,
   TrendingDown,
