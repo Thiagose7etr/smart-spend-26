@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MetasRouteImport } from './routes/metas'
+import { Route as FrotasRouteImport } from './routes/frotas'
 import { Route as ComprasRouteImport } from './routes/compras'
 import { Route as IndexRouteImport } from './routes/index'
 
 const MetasRoute = MetasRouteImport.update({
   id: '/metas',
   path: '/metas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrotasRoute = FrotasRouteImport.update({
+  id: '/frotas',
+  path: '/frotas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComprasRoute = ComprasRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/frotas': typeof FrotasRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/frotas': typeof FrotasRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/frotas': typeof FrotasRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/compras' | '/metas'
+  fullPaths: '/' | '/compras' | '/frotas' | '/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/compras' | '/metas'
-  id: '__root__' | '/' | '/compras' | '/metas'
+  to: '/' | '/compras' | '/frotas' | '/metas'
+  id: '__root__' | '/' | '/compras' | '/frotas' | '/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComprasRoute: typeof ComprasRoute
+  FrotasRoute: typeof FrotasRoute
   MetasRoute: typeof MetasRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/metas'
       fullPath: '/metas'
       preLoaderRoute: typeof MetasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frotas': {
+      id: '/frotas'
+      path: '/frotas'
+      fullPath: '/frotas'
+      preLoaderRoute: typeof FrotasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compras': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComprasRoute: ComprasRoute,
+  FrotasRoute: FrotasRoute,
   MetasRoute: MetasRoute,
 }
 export const routeTree = rootRouteImport

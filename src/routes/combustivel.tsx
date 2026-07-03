@@ -1,0 +1,264 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AppShell } from "@/components/app-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { fmtNum, sbFrom, type Combustivel } from "@/lib/db-types";
+
+export const Route = createFileRoute("/combustivel")({
+  component: CombustivelPage,
+  head: () => ({
+    meta: [
+      { title: "Combustível — CustoControl" },
+      { name: "description", content: "Controle de entradas e saídas de combustível S10 e S500." },
+    ],
+  }),
+});
+
+type FormState = {
+  id?: string;
+  data: string;
+  tipo: string;
+  movimento: string;
+  quantidade: number;
+  frota?: string;
+  observacao?: string;
+};
+const emptyForm = (): FormState => ({
+  data: new Date().toISOString().slice(0, 10),
+  tipo: "S10",
+  movimento: "SAIDA",
+  quantidade: 0,
+});
+
+function CombustivelPage() {
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState<FormState>(emptyForm());
+
+  const { data: movs = [] } = useQuery({
+    queryKey: ["combustivel"],
+    queryFn: async () => {
+      const { data, error } = await sbFrom("combustivel").select("*").order("data", { ascending: false }).limit(500);
+      if (error) throw error;
+      return (data ?? []) as Combustivel[];
+    },
+  });
+
+  const stats = useMemo(() => {
+    const s10Ent = movs.filter((m) => m.tipo === "S10" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s10Sai = movs.filter((m) => m.tipo === "S10" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s500Ent = movs.filter((m) => m.tipo === "S500" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s500Sai = movs.filter((m) => m.tipo === "S500" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
+    return {
+      s10Estoque: s10Ent - s10Sai,
+      s500Estoque: s500Ent - s500Sai,
+      s10Ent, s10Sai, s500Ent, s500Sai,
+    };
+  }, [movs]);
+
+  const salvar = useMutation({
+    mutationFn: async (f: FormState) => {
+      const payload = {
+        data: f.data,
+        tipo: f.tipo,
+        movimento: f.movimento,
+        quantidade: Number(f.quantidade),
+        frota: f.frota || null,
+        observacao: f.observacao || null,
+      };
+      if (f.id) {
+        const { error } = await sbFrom("combustivel").update(payload).eq("id", f.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sbFrom("combustivel").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["combustivel"] });
+      setDialogOpen(false);
+      setForm(emptyForm());
+      toast.success("Movimentação registrada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const excluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sbFrom("combustivel").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["combustivel"] }),
+  });
+
+  return (
+    <AppShell>
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-2">Estoque</div>
+          <h1 className="text-3xl font-bold tracking-tight">Combustível</h1>
+          <p className="text-sm text-muted-foreground mt-1">Registro de entradas e consumo por diesel.</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setForm(emptyForm())} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+              <Plus className="h-4 w-4 mr-2" /> Nova movimentação
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nova movimentação</DialogTitle></DialogHeader>
+            <div className="grid gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Data</Label>
+                  <Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="S10">Diesel S10</SelectItem>
+                      <SelectItem value="S500">Diesel S500</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Movimento</Label>
+                  <Select value={form.movimento} onValueChange={(v) => setForm({ ...form, movimento: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ENTRADA">Entrada (compra)</SelectItem>
+                      <SelectItem value="SAIDA">Saída (consumo)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Quantidade (litros)</Label>
+                  <Input type="number" step="0.01" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Frota (se saída)</Label>
+                <Input value={form.frota ?? ""} onChange={(e) => setForm({ ...form, frota: e.target.value })} placeholder="Ex: 201" />
+              </div>
+              <div>
+                <Label className="text-xs">Observação</Label>
+                <Input value={form.observacao ?? ""} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                {salvar.isPending ? "Salvando…" : "Registrar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <StatCard label="Estoque S10" value={`${fmtNum(stats.s10Estoque)} L`} icon={Fuel} tone="primary" />
+        <StatCard label="Estoque S500" value={`${fmtNum(stats.s500Estoque)} L`} icon={Droplet} tone="accent" />
+        <StatCard label="Saídas S10" value={`${fmtNum(stats.s10Sai)} L`} icon={ArrowDownRight} tone="muted" />
+        <StatCard label="Saídas S500" value={`${fmtNum(stats.s500Sai)} L`} icon={ArrowDownRight} tone="muted" />
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Histórico</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Movimento</TableHead>
+                  <TableHead className="text-right">Litros</TableHead>
+                  <TableHead>Frota</TableHead>
+                  <TableHead>Observação</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {movs.length === 0 && (
+                  <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Nenhum lançamento.</TableCell></TableRow>
+                )}
+                {movs.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="tabular-nums text-xs">{new Date(m.data).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell><Badge variant="secondary">{m.tipo}</Badge></TableCell>
+                    <TableCell>
+                      {m.movimento === "ENTRADA" ? (
+                        <span className="inline-flex items-center gap-1 text-primary text-xs font-medium"><ArrowUpRight className="h-3 w-3" /> ENTRADA</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-accent text-xs font-medium"><ArrowDownRight className="h-3 w-3" /> SAÍDA</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{fmtNum(m.quantidade)}</TableCell>
+                    <TableCell className="text-xs">{m.frota || "-"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{m.observacao || "-"}</TableCell>
+                    <TableCell>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => excluir.mutate(m.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </AppShell>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, tone }: { label: string; value: string; icon: React.ElementType; tone: "primary" | "accent" | "muted" }) {
+  return (
+    <Card>
+      <CardContent className="pt-6 flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+          <div className="text-2xl font-bold mt-1 tabular-nums">{value}</div>
+        </div>
+        <div className={`grid h-11 w-11 place-items-center rounded-lg ${
+          tone === "primary" ? "bg-primary/15 text-primary" :
+          tone === "accent" ? "bg-accent/15 text-accent" :
+          "bg-muted text-muted-foreground"
+        }`}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
