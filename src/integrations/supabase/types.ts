@@ -14,7 +14,207 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      combustivel: {
+        Row: {
+          created_at: string
+          data: string
+          frota: string | null
+          id: string
+          movimento: string
+          observacao: string | null
+          quantidade: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          frota?: string | null
+          id?: string
+          movimento: string
+          observacao?: string | null
+          quantidade?: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          frota?: string | null
+          id?: string
+          movimento?: string
+          observacao?: string | null
+          quantidade?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      compras: {
+        Row: {
+          ano: number | null
+          created_at: string
+          data_emissao: string | null
+          fornecedor: string | null
+          frota: string | null
+          id: string
+          item: string | null
+          mes: string | null
+          nf: string | null
+          prazo_pag: string | null
+          quant: number | null
+          tipo: string | null
+          updated_at: string
+          valor_total: number | null
+          valor_unit: number | null
+        }
+        Insert: {
+          ano?: number | null
+          created_at?: string
+          data_emissao?: string | null
+          fornecedor?: string | null
+          frota?: string | null
+          id?: string
+          item?: string | null
+          mes?: string | null
+          nf?: string | null
+          prazo_pag?: string | null
+          quant?: number | null
+          tipo?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          valor_unit?: number | null
+        }
+        Update: {
+          ano?: number | null
+          created_at?: string
+          data_emissao?: string | null
+          fornecedor?: string | null
+          frota?: string | null
+          id?: string
+          item?: string | null
+          mes?: string | null
+          nf?: string | null
+          prazo_pag?: string | null
+          quant?: number | null
+          tipo?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          valor_unit?: number | null
+        }
+        Relationships: []
+      }
+      frotas: {
+        Row: {
+          chassi: string | null
+          codigo: string
+          created_at: string
+          id: string
+          marca: string | null
+          modelo: string | null
+          placa: string | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          chassi?: string | null
+          codigo: string
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          placa?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chassi?: string | null
+          codigo?: string
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          placa?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      guincho: {
+        Row: {
+          created_at: string
+          data: string | null
+          endereco_entrega: string | null
+          endereco_retirada: string | null
+          frota: string | null
+          id: string
+          modelo: string | null
+          peso_kg: number | null
+          problema: string | null
+          status: string | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: string | null
+          endereco_entrega?: string | null
+          endereco_retirada?: string | null
+          frota?: string | null
+          id?: string
+          modelo?: string | null
+          peso_kg?: number | null
+          problema?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string | null
+          endereco_entrega?: string | null
+          endereco_retirada?: string | null
+          frota?: string | null
+          id?: string
+          modelo?: string | null
+          peso_kg?: number | null
+          problema?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      metas: {
+        Row: {
+          ano: number
+          categoria: string
+          created_at: string
+          id: string
+          mes: string
+          updated_at: string
+          valor_meta: number
+        }
+        Insert: {
+          ano: number
+          categoria: string
+          created_at?: string
+          id?: string
+          mes: string
+          updated_at?: string
+          valor_meta?: number
+        }
+        Update: {
+          ano?: number
+          categoria?: string
+          created_at?: string
+          id?: string
+          mes?: string
+          updated_at?: string
+          valor_meta?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
