@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as MetasRouteImport } from './routes/metas'
 import { Route as FrotasRouteImport } from './routes/frotas'
 import { Route as ComprasRouteImport } from './routes/compras'
+import { Route as CombustivelRouteImport } from './routes/combustivel'
 import { Route as IndexRouteImport } from './routes/index'
 
 const MetasRoute = MetasRouteImport.update({
@@ -29,6 +30,11 @@ const ComprasRoute = ComprasRouteImport.update({
   path: '/compras',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CombustivelRoute = CombustivelRouteImport.update({
+  id: '/combustivel',
+  path: '/combustivel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/combustivel': typeof CombustivelRoute
   '/compras': typeof ComprasRoute
   '/frotas': typeof FrotasRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/combustivel': typeof CombustivelRoute
   '/compras': typeof ComprasRoute
   '/frotas': typeof FrotasRoute
   '/metas': typeof MetasRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/combustivel': typeof CombustivelRoute
   '/compras': typeof ComprasRoute
   '/frotas': typeof FrotasRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/compras' | '/frotas' | '/metas'
+  fullPaths: '/' | '/combustivel' | '/compras' | '/frotas' | '/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/compras' | '/frotas' | '/metas'
-  id: '__root__' | '/' | '/compras' | '/frotas' | '/metas'
+  to: '/' | '/combustivel' | '/compras' | '/frotas' | '/metas'
+  id: '__root__' | '/' | '/combustivel' | '/compras' | '/frotas' | '/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CombustivelRoute: typeof CombustivelRoute
   ComprasRoute: typeof ComprasRoute
   FrotasRoute: typeof FrotasRoute
   MetasRoute: typeof MetasRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComprasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/combustivel': {
+      id: '/combustivel'
+      path: '/combustivel'
+      fullPath: '/combustivel'
+      preLoaderRoute: typeof CombustivelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CombustivelRoute: CombustivelRoute,
   ComprasRoute: ComprasRoute,
   FrotasRoute: FrotasRoute,
   MetasRoute: MetasRoute,
