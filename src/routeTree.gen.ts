@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MetasRouteImport } from './routes/metas'
+import { Route as GuinchoRouteImport } from './routes/guincho'
 import { Route as FrotasRouteImport } from './routes/frotas'
 import { Route as ComprasRouteImport } from './routes/compras'
 import { Route as CombustivelRouteImport } from './routes/combustivel'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const MetasRoute = MetasRouteImport.update({
   id: '/metas',
   path: '/metas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuinchoRoute = GuinchoRouteImport.update({
+  id: '/guincho',
+  path: '/guincho',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FrotasRoute = FrotasRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/combustivel': typeof CombustivelRoute
   '/compras': typeof ComprasRoute
   '/frotas': typeof FrotasRoute
+  '/guincho': typeof GuinchoRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/combustivel': typeof CombustivelRoute
   '/compras': typeof ComprasRoute
   '/frotas': typeof FrotasRoute
+  '/guincho': typeof GuinchoRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,28 @@ export interface FileRoutesById {
   '/combustivel': typeof CombustivelRoute
   '/compras': typeof ComprasRoute
   '/frotas': typeof FrotasRoute
+  '/guincho': typeof GuinchoRoute
   '/metas': typeof MetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/combustivel' | '/compras' | '/frotas' | '/metas'
+  fullPaths:
+    | '/'
+    | '/combustivel'
+    | '/compras'
+    | '/frotas'
+    | '/guincho'
+    | '/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/combustivel' | '/compras' | '/frotas' | '/metas'
-  id: '__root__' | '/' | '/combustivel' | '/compras' | '/frotas' | '/metas'
+  to: '/' | '/combustivel' | '/compras' | '/frotas' | '/guincho' | '/metas'
+  id:
+    | '__root__'
+    | '/'
+    | '/combustivel'
+    | '/compras'
+    | '/frotas'
+    | '/guincho'
+    | '/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +98,7 @@ export interface RootRouteChildren {
   CombustivelRoute: typeof CombustivelRoute
   ComprasRoute: typeof ComprasRoute
   FrotasRoute: typeof FrotasRoute
+  GuinchoRoute: typeof GuinchoRoute
   MetasRoute: typeof MetasRoute
 }
 
@@ -86,6 +109,13 @@ declare module '@tanstack/react-router' {
       path: '/metas'
       fullPath: '/metas'
       preLoaderRoute: typeof MetasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guincho': {
+      id: '/guincho'
+      path: '/guincho'
+      fullPath: '/guincho'
+      preLoaderRoute: typeof GuinchoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/frotas': {
@@ -124,6 +154,7 @@ const rootRouteChildren: RootRouteChildren = {
   CombustivelRoute: CombustivelRoute,
   ComprasRoute: ComprasRoute,
   FrotasRoute: FrotasRoute,
+  GuinchoRoute: GuinchoRoute,
   MetasRoute: MetasRoute,
 }
 export const routeTree = rootRouteImport
