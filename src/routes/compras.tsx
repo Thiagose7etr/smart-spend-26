@@ -50,7 +50,7 @@ export const Route = createFileRoute("/compras")({
   component: ComprasPage,
   head: () => ({
     meta: [
-      { title: "Compras — CustoControl" },
+      { title: "Compras — THcontrol" },
       { name: "description", content: "Cadastro e listagem de notas fiscais e compras." },
     ],
   }),
@@ -76,6 +76,9 @@ function ComprasPage() {
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
   const [filtroMes, setFiltroMes] = useState<string>("todos");
   const [filtroAno, setFiltroAno] = useState<string>("todos");
+  const [filtroFrota, setFiltroFrota] = useState<string>("todos");
+  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("todos");
+  const [filtroItem, setFiltroItem] = useState<string>("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
 
@@ -97,6 +100,9 @@ function ComprasPage() {
       if (filtroTipo !== "todos" && c.tipo !== filtroTipo) return false;
       if (filtroMes !== "todos" && c.mes !== filtroMes) return false;
       if (filtroAno !== "todos" && String(c.ano) !== filtroAno) return false;
+      if (filtroFrota !== "todos" && (c.frota || "") !== filtroFrota) return false;
+      if (filtroFornecedor !== "todos" && (c.fornecedor || "") !== filtroFornecedor) return false;
+      if (filtroItem !== "todos" && (c.item || "") !== filtroItem) return false;
       if (!b) return true;
       return (
         (c.fornecedor || "").toLowerCase().includes(b) ||
@@ -105,13 +111,16 @@ function ComprasPage() {
         (c.frota || "").toLowerCase().includes(b)
       );
     });
-  }, [compras, busca, filtroTipo, filtroMes, filtroAno]);
+  }, [compras, busca, filtroTipo, filtroMes, filtroAno, filtroFrota, filtroFornecedor, filtroItem]);
 
   const total = filtrados.reduce((s, c) => s + Number(c.valor_total || 0), 0);
 
   const tiposUnicos = Array.from(new Set([...CATEGORIAS, ...compras.map((c) => c.tipo).filter(Boolean) as string[]])).sort();
   const anosUnicos = Array.from(new Set(compras.map((c) => c.ano).filter(Boolean))) as number[];
   anosUnicos.sort((a, b) => b - a);
+  const frotasUnicas = Array.from(new Set(compras.map((c) => c.frota).filter(Boolean) as string[])).sort();
+  const fornecedoresUnicos = Array.from(new Set(compras.map((c) => c.fornecedor).filter(Boolean) as string[])).sort();
+  const itensUnicos = Array.from(new Set(compras.map((c) => c.item).filter(Boolean) as string[])).sort();
 
   const salvar = useMutation({
     mutationFn: async (f: FormState) => {
@@ -255,6 +264,27 @@ function ComprasPage() {
             <SelectContent>
               <SelectItem value="todos">Todos anos</SelectItem>
               {anosUnicos.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtroFrota} onValueChange={setFiltroFrota}>
+            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Frota" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas frotas</SelectItem>
+              {frotasUnicas.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtroFornecedor} onValueChange={setFiltroFornecedor}>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Fornecedor" /></SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="todos">Todos fornecedores</SelectItem>
+              {fornecedoresUnicos.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtroItem} onValueChange={setFiltroItem}>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Item" /></SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="todos">Todos itens</SelectItem>
+              {itensUnicos.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
             </SelectContent>
           </Select>
         </CardContent>

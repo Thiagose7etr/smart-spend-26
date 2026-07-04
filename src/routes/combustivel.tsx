@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2 } from "lucide-react";
+import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2, TrendingDown, CalendarClock } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { fmtNum, sbFrom, type Combustivel } from "@/lib/db-types";
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/combustivel")({
   component: CombustivelPage,
   head: () => ({
     meta: [
-      { title: "Combustível — CustoControl" },
+      { title: "Combustível — THcontrol" },
       { name: "description", content: "Controle de entradas e saídas de combustível S10 e S500." },
     ],
   }),
@@ -79,10 +79,30 @@ function CombustivelPage() {
     const s10Sai = movs.filter((m) => m.tipo === "S10" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
     const s500Ent = movs.filter((m) => m.tipo === "S500" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
     const s500Sai = movs.filter((m) => m.tipo === "S500" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
+
+    const calcMedia = (tipo: string) => {
+      const saidas = movs.filter((m) => m.tipo === tipo && m.movimento === "SAIDA");
+      if (saidas.length === 0) return 0;
+      const datas = saidas.map((m) => new Date(m.data).getTime()).filter((t) => !Number.isNaN(t));
+      if (datas.length === 0) return 0;
+      const min = Math.min(...datas);
+      const max = Math.max(...datas);
+      const dias = Math.max(1, Math.round((max - min) / 86400000) + 1);
+      const total = saidas.reduce((s, m) => s + Number(m.quantidade), 0);
+      return total / dias;
+    };
+
+    const s10Media = calcMedia("S10");
+    const s500Media = calcMedia("S500");
+    const s10Estoque = s10Ent - s10Sai;
+    const s500Estoque = s500Ent - s500Sai;
+
     return {
-      s10Estoque: s10Ent - s10Sai,
-      s500Estoque: s500Ent - s500Sai,
+      s10Estoque, s500Estoque,
       s10Ent, s10Sai, s500Ent, s500Sai,
+      s10Media, s500Media,
+      s10Dias: s10Media > 0 ? s10Estoque / s10Media : 0,
+      s500Dias: s500Media > 0 ? s500Estoque / s500Media : 0,
     };
   }, [movs]);
 
@@ -193,6 +213,25 @@ function CombustivelPage() {
         <StatCard label="Saídas S500" value={`${fmtNum(stats.s500Sai)} L`} icon={ArrowDownRight} tone="muted" />
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2 mb-6">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Fuel className="h-4 w-4 text-primary" /> Projeção Diesel S10</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-3 gap-4">
+            <Metric label="Média diária" value={`${fmtNum(stats.s10Media, 1)} L`} icon={TrendingDown} />
+            <Metric label="Estoque atual" value={`${fmtNum(stats.s10Estoque)} L`} icon={Fuel} />
+            <Metric label="Dura por" value={stats.s10Media > 0 ? `${fmtNum(stats.s10Dias, 1)} dias` : "—"} icon={CalendarClock} highlight />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Droplet className="h-4 w-4 text-accent" /> Projeção Diesel S500</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-3 gap-4">
+            <Metric label="Média diária" value={`${fmtNum(stats.s500Media, 1)} L`} icon={TrendingDown} />
+            <Metric label="Estoque atual" value={`${fmtNum(stats.s500Estoque)} L`} icon={Droplet} />
+            <Metric label="Dura por" value={stats.s500Media > 0 ? `${fmtNum(stats.s500Dias, 1)} dias` : "—"} icon={CalendarClock} highlight />
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader><CardTitle className="text-base">Histórico</CardTitle></CardHeader>
         <CardContent className="p-0">
@@ -260,5 +299,16 @@ function StatCard({ label, value, icon: Icon, tone }: { label: string; value: st
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function Metric({ label, value, icon: Icon, highlight }: { label: string; value: string; icon: React.ElementType; highlight?: boolean }) {
+  return (
+    <div className={`rounded-lg border border-border p-3 ${highlight ? "bg-primary/10 border-primary/40" : "bg-muted/30"}`}>
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <Icon className="h-3 w-3" /> {label}
+      </div>
+      <div className={`text-xl font-bold mt-1 tabular-nums ${highlight ? "text-primary" : ""}`}>{value}</div>
+    </div>
   );
 }
