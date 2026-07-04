@@ -31,7 +31,7 @@ export const Route = createFileRoute("/guincho")({
   component: GuinchoPage,
   head: () => ({
     meta: [
-      { title: "Guincho — CustoControl" },
+      { title: "Guincho — THcontrol" },
       { name: "description", content: "Solicitações e histórico de guincho da frota." },
     ],
   }),

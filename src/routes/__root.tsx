@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CustoControl — Controle de Compras e Frota" },
+      { title: "THcontrol — Controle de Compras e Frota" },
       {
         name: "description",
         content:
           "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho.",
       },
-      { name: "author", content: "CustoControl" },
-      { property: "og:title", content: "CustoControl — Controle de Compras e Frota" },
+      { name: "author", content: "THcontrol" },
+      { property: "og:title", content: "THcontrol — Controle de Compras e Frota" },
       {
         property: "og:description",
         content:
@@ -93,7 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "CustoControl — Controle de Compras e Frota" },
+      { name: "twitter:title", content: "THcontrol — Controle de Compras e Frota" },
       { name: "description", content: "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho." },
       { property: "og:description", content: "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho." },
       { name: "twitter:description", content: "App profissional de controle mensal de compras, metas por categoria, frota, combustível e guincho." },

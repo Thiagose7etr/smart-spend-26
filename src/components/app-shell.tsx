@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-semibold tracking-wide">CustoControl</div>
+            <div className="text-sm font-semibold tracking-wide">THcontrol</div>
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
               Fleet & Purchases
             </div>
@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Sparkles className="h-4 w-4" />
           </div>
-          <span className="font-semibold text-sm">CustoControl</span>
+          <span className="font-semibold text-sm">THcontrol</span>
         </div>
       </div>
 

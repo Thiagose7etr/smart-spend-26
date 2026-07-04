@@ -38,7 +38,7 @@ export const Route = createFileRoute("/combustivel")({
   component: CombustivelPage,
   head: () => ({
     meta: [
-      { title: "Combustível — CustoControl" },
+      { title: "Combustível — THcontrol" },
       { name: "description", content: "Controle de entradas e saídas de combustível S10 e S500." },
     ],
   }),

@@ -33,7 +33,7 @@ export const Route = createFileRoute("/frotas")({
   component: FrotasPage,
   head: () => ({
     meta: [
-      { title: "Frotas — CustoControl" },
+      { title: "Frotas — THcontrol" },
       { name: "description", content: "Cadastro e gestão da frota de veículos." },
     ],
   }),

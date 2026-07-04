@@ -38,7 +38,7 @@ export const Route = createFileRoute("/metas")({
   component: MetasPage,
   head: () => ({
     meta: [
-      { title: "Metas — CustoControl" },
+      { title: "Metas — THcontrol" },
       { name: "description", content: "Metas mensais por categoria versus realizado." },
     ],
   }),

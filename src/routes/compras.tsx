@@ -50,7 +50,7 @@ export const Route = createFileRoute("/compras")({
   component: ComprasPage,
   head: () => ({
     meta: [
-      { title: "Compras — CustoControl" },
+      { title: "Compras — THcontrol" },
       { name: "description", content: "Cadastro e listagem de notas fiscais e compras." },
     ],
   }),
