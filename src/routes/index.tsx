@@ -24,7 +24,6 @@ import {
   TrendingDown,
   Wallet,
   ShoppingCart,
-  Building2,
   Target,
 } from "lucide-react";
 import { useState } from "react";
@@ -54,6 +53,7 @@ const CHART_COLORS = [
 function DashboardPage() {
   const now = new Date();
   const [ano, setAno] = useState<number>(now.getFullYear());
+  const [mes, setMes] = useState<string>("TODOS");
 
   const { data: compras = [] } = useQuery({
     queryKey: ["compras", "all"],
@@ -83,16 +83,17 @@ function DashboardPage() {
 
   const comprasAno = compras.filter((c) => c.ano === ano);
   const totalAno = comprasAno.reduce((s, c) => s + Number(c.valor_total || 0), 0);
-  const mesAtual = MESES[now.getMonth()];
+  const mesAtual = mes === "TODOS" ? MESES[now.getMonth()] : mes;
   const totalMes = comprasAno
     .filter((c) => c.mes === mesAtual)
     .reduce((s, c) => s + Number(c.valor_total || 0), 0);
   const totalMetaMes = metas.filter((m) => m.mes === mesAtual).reduce((s, m) => s + Number(m.valor_meta), 0);
   const diferencaMes = totalMetaMes - totalMes;
 
-  const fornecedoresUnicos = new Set(comprasAno.map((c) => c.fornecedor).filter(Boolean)).size;
+  // base de compras respeitando o filtro de mês (para categorias/fornecedores)
+  const comprasFiltradas = mes === "TODOS" ? comprasAno : comprasAno.filter((c) => c.mes === mes);
 
-  // gasto por mês
+  // gasto por mês (sempre exibe os 12 meses do ano selecionado)
   const porMes = MESES.map((m) => {
     const gasto = comprasAno.filter((c) => c.mes === m).reduce((s, c) => s + Number(c.valor_total || 0), 0);
     const meta = metas.filter((x) => x.mes === m).reduce((s, x) => s + Number(x.valor_meta), 0);
@@ -101,7 +102,7 @@ function DashboardPage() {
 
   // por categoria
   const catMap = new Map<string, number>();
-  comprasAno.forEach((c) => {
+  comprasFiltradas.forEach((c) => {
     const k = c.tipo || "OUTROS";
     catMap.set(k, (catMap.get(k) || 0) + Number(c.valor_total || 0));
   });
@@ -112,7 +113,7 @@ function DashboardPage() {
 
   // top fornecedores
   const fornMap = new Map<string, number>();
-  comprasAno.forEach((c) => {
+  comprasFiltradas.forEach((c) => {
     if (!c.fornecedor) return;
     fornMap.set(c.fornecedor, (fornMap.get(c.fornecedor) || 0) + Number(c.valor_total || 0));
   });
@@ -143,13 +144,6 @@ function DashboardPage() {
       tone: (diferencaMes >= 0 ? "primary" : "danger") as "primary" | "danger",
       sub: diferencaMes >= 0 ? "Abaixo da meta" : "Acima da meta",
     },
-    {
-      label: "Fornecedores ativos",
-      value: fornecedoresUnicos.toString(),
-      icon: Building2,
-      tone: "muted" as const,
-      sub: `${porCategoria.length} categorias`,
-    },
   ];
 
   return (
@@ -167,7 +161,17 @@ function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Ano-base</span>
+          <span className="text-xs text-muted-foreground">Mês</span>
+          <Select value={mes} onValueChange={setMes}>
+            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="TODOS">Todos</SelectItem>
+              {MESES.map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground ml-2">Ano</span>
           <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
             <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -180,7 +184,7 @@ function DashboardPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
         {kpis.map((k) => {
           const Icon = k.icon;
           return (

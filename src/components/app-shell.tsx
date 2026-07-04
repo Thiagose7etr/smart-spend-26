@@ -6,10 +6,10 @@ import {
   Truck,
   Fuel,
   Wrench,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import thcLogo from "@/assets/thc-logo.jpg.asset.json";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -28,12 +28,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-sidebar">
         <div className="flex items-center gap-3 px-6 py-6 border-b border-sidebar-border">
-          <div
-            className="grid h-10 w-10 place-items-center rounded-xl text-primary-foreground"
-            style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" }}
-          >
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <img
+            src={thcLogo.url}
+            alt="THcontrol"
+            className="h-10 w-10 rounded-xl object-cover"
+            style={{ boxShadow: "var(--shadow-glow)" }}
+          />
           <div>
             <div className="text-sm font-semibold tracking-wide">THcontrol</div>
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -79,12 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 inset-x-0 z-20 flex items-center justify-between border-b border-border bg-sidebar px-4 py-3">
         <div className="flex items-center gap-2">
-          <div
-            className="grid h-8 w-8 place-items-center rounded-lg text-primary-foreground"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            <Sparkles className="h-4 w-4" />
-          </div>
+          <img src={thcLogo.url} alt="THcontrol" className="h-8 w-8 rounded-lg object-cover" />
           <span className="font-semibold text-sm">THcontrol</span>
         </div>
       </div>
