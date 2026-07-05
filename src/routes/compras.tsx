@@ -41,10 +41,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, FileDown } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Plus, Search, Pencil, Trash2, FileDown, ScanLine, Loader2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, type Compra } from "@/lib/db-types";
+import { useServerFn } from "@tanstack/react-start";
+import { extrairNotaFiscal } from "@/lib/nf-ocr.functions";
 
 export const Route = createFileRoute("/compras")({
   component: ComprasPage,
@@ -81,6 +83,40 @@ function ComprasPage() {
   const [filtroItem, setFiltroItem] = useState<string>("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
+  const [scanLoading, setScanLoading] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+  const runOcr = useServerFn(extrairNotaFiscal);
+
+  const onScanFile = async (file: File) => {
+    setScanLoading(true);
+    try {
+      const b64: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(new Error("Falha ao ler arquivo"));
+        r.readAsDataURL(file);
+      });
+      const res = await runOcr({ data: { imageBase64: b64, mimeType: file.type || "image/jpeg" } });
+      setForm({
+        ...emptyForm(),
+        nf: res.nf ?? "",
+        fornecedor: res.fornecedor ?? "",
+        data_emissao: res.data_emissao ?? new Date().toISOString().slice(0, 10),
+        item: res.item ?? "",
+        quant: res.quant ?? 1,
+        valor_unit: res.valor_unit ?? 0,
+        valor_total: res.valor_total ?? (Number(res.quant || 0) * Number(res.valor_unit || 0)),
+        tipo: res.tipo ?? "PEÇAS",
+      });
+      setDialogOpen(true);
+      toast.success("NF lida! Confira os dados antes de salvar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao ler NF");
+    } finally {
+      setScanLoading(false);
+      if (scanInputRef.current) scanInputRef.current.value = "";
+    }
+  };
 
   const { data: compras = [], isLoading } = useQuery({
     queryKey: ["compras", "all"],
@@ -217,6 +253,29 @@ function ComprasPage() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportCsv}>
             <FileDown className="h-4 w-4 mr-2" /> Exportar
+          </Button>
+          <input
+            ref={scanInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onScanFile(f);
+            }}
+          />
+          <Button
+            variant="outline"
+            onClick={() => scanInputRef.current?.click()}
+            disabled={scanLoading}
+          >
+            {scanLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ScanLine className="h-4 w-4 mr-2" />
+            )}
+            {scanLoading ? "Lendo NF…" : "Escanear NF"}
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
