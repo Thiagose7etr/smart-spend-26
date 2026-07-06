@@ -286,9 +286,13 @@ function DashboardPage() {
 
       {/* Chart row 1 */}
       <div className="grid gap-4 lg:grid-cols-3 mb-4">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Gasto x Meta por mês — {ano}</CardTitle>
+        <CollapsibleCard
+          id="gasto-meta"
+          className="lg:col-span-2"
+          title={`Gasto x Meta por mês — ${ano}`}
+          collapsed={!!collapsed["gasto-meta"]}
+          onToggle={toggle}
+          headerExtra={
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Gasto
@@ -297,9 +301,9 @@ function DashboardPage() {
                 <span className="h-2.5 w-2.5 rounded-sm bg-accent" /> Meta
               </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
+          }
+        >
+          <ResponsiveContainer width="100%" height={320}>
               <BarChart data={porMes} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="mes" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -322,17 +326,16 @@ function DashboardPage() {
                 <Bar dataKey="Gasto" fill="var(--primary)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Target className="h-4 w-4 text-primary" /> Top categorias
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
+        <CollapsibleCard
+          id="top-categorias"
+          title="Top categorias"
+          icon={<Target className="h-4 w-4 text-primary" />}
+          collapsed={!!collapsed["top-categorias"]}
+          onToggle={toggle}
+        >
+          <ResponsiveContainer width="100%" height={320}>
               <PieChart>
                 <Pie
                   data={porCategoria}
@@ -361,27 +364,20 @@ function DashboardPage() {
                 />
               </PieChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
       </div>
 
       {/* Chart row 2 */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Evolução acumulada — {ano}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart
-                data={(() => {
-                  let acc = 0;
-                  return porMes.map((p) => {
-                    acc += p.Gasto;
-                    return { mes: p.mes, Acumulado: acc };
-                  });
-                })()}
-              >
+        <CollapsibleCard
+          id="evolucao"
+          className="lg:col-span-2"
+          title={`Evolução mensal — ${ano}`}
+          collapsed={!!collapsed["evolucao"]}
+          onToggle={toggle}
+        >
+          <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={porMes.map((p) => ({ mes: p.mes, Gasto: p.Gasto }))}>
                 <defs>
                   <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="var(--primary)" />
@@ -404,17 +400,18 @@ function DashboardPage() {
                   }}
                   formatter={(v: number) => fmtBRL(v)}
                 />
-                <Line type="monotone" dataKey="Acumulado" stroke="url(#glow)" strokeWidth={3} dot={{ r: 4, fill: "var(--primary)" }} />
+                <Line type="monotone" dataKey="Gasto" stroke="url(#glow)" strokeWidth={3} dot={{ r: 4, fill: "var(--primary)" }} />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top fornecedores</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <CollapsibleCard
+          id="top-fornecedores"
+          title="Top fornecedores"
+          collapsed={!!collapsed["top-fornecedores"]}
+          onToggle={toggle}
+        >
+          <div className="space-y-3">
             {topFornecedores.length === 0 && (
               <p className="text-sm text-muted-foreground">Sem dados.</p>
             )}
@@ -439,8 +436,8 @@ function DashboardPage() {
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleCard>
       </div>
     </AppShell>
   );
