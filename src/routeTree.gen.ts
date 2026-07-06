@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
@@ -17,6 +18,11 @@ import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCombustivelRouteImport } from './routes/_authenticated/combustivel'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -55,6 +61,7 @@ const AuthenticatedCombustivelRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
   '/combustivel': typeof AuthenticatedCombustivelRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/frotas': typeof AuthenticatedFrotasRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/metas': typeof AuthenticatedMetasRoute
 }
 export interface FileRoutesByTo {
+  '/auth': typeof AuthRoute
   '/combustivel': typeof AuthenticatedCombustivelRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/frotas': typeof AuthenticatedFrotasRoute
@@ -72,6 +80,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/_authenticated/combustivel': typeof AuthenticatedCombustivelRoute
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
   '/_authenticated/frotas': typeof AuthenticatedFrotasRoute
@@ -83,16 +92,25 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/combustivel'
     | '/compras'
     | '/frotas'
     | '/guincho'
     | '/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/combustivel' | '/compras' | '/frotas' | '/guincho' | '/metas' | '/'
+  to:
+    | '/auth'
+    | '/combustivel'
+    | '/compras'
+    | '/frotas'
+    | '/guincho'
+    | '/metas'
+    | '/'
   id:
     | '__root__'
     | '/_authenticated'
+    | '/auth'
     | '/_authenticated/combustivel'
     | '/_authenticated/compras'
     | '/_authenticated/frotas'
@@ -103,10 +121,18 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -182,6 +208,7 @@ const AuthenticatedRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
