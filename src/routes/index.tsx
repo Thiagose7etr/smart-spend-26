@@ -25,8 +25,11 @@ import {
   Wallet,
   ShoppingCart,
   Target,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -38,6 +41,51 @@ import {
 export const Route = createFileRoute("/")({
   component: DashboardPage,
 });
+
+function CollapsibleCard({
+  id,
+  title,
+  icon,
+  headerExtra,
+  children,
+  className,
+  collapsed,
+  onToggle,
+}: {
+  id: string;
+  title: ReactNode;
+  icon?: ReactNode;
+  headerExtra?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  collapsed: boolean;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          {icon}
+          {title}
+        </CardTitle>
+        <div className="flex items-center gap-3">
+          {!collapsed && headerExtra}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onToggle(id)}
+            aria-label={collapsed ? "Expandir" : "Recolher"}
+          >
+            {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardHeader>
+      {!collapsed && <CardContent>{children}</CardContent>}
+    </Card>
+  );
+}
 
 const CHART_COLORS = [
   "var(--chart-1)",
@@ -54,6 +102,9 @@ function DashboardPage() {
   const now = new Date();
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [mes, setMes] = useState<string>("TODOS");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) =>
+    setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const { data: compras = [] } = useQuery({
     queryKey: ["compras", "all"],
