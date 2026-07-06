@@ -27,7 +27,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { sbFrom, type Guincho } from "@/lib/db-types";
 
-export const Route = createFileRoute("/guincho")({
+export const Route = createFileRoute("/_authenticated/guincho")({
   component: GuinchoPage,
   head: () => ({
     meta: [

@@ -48,7 +48,7 @@ import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, type Compra } from "@/l
 import { useServerFn } from "@tanstack/react-start";
 import { extrairNotaFiscal } from "@/lib/nf-ocr.functions";
 
-export const Route = createFileRoute("/compras")({
+export const Route = createFileRoute("/_authenticated/compras")({
   component: ComprasPage,
   head: () => ({
     meta: [

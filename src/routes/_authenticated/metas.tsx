@@ -34,7 +34,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CATEGORIAS, MESES, fmtBRL, sbFrom, type Compra, type Meta } from "@/lib/db-types";
 
-export const Route = createFileRoute("/metas")({
+export const Route = createFileRoute("/_authenticated/metas")({
   component: MetasPage,
   head: () => ({
     meta: [
