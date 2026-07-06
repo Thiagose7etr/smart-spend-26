@@ -34,7 +34,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { fmtNum, sbFrom, type Combustivel } from "@/lib/db-types";
 
-export const Route = createFileRoute("/combustivel")({
+export const Route = createFileRoute("/_authenticated/combustivel")({
   component: CombustivelPage,
   head: () => ({
     meta: [

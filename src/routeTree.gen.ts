@@ -9,153 +9,228 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as MetasRouteImport } from './routes/metas'
-import { Route as GuinchoRouteImport } from './routes/guincho'
-import { Route as FrotasRouteImport } from './routes/frotas'
-import { Route as ComprasRouteImport } from './routes/compras'
-import { Route as CombustivelRouteImport } from './routes/combustivel'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
+import { Route as AuthenticatedGuinchoRouteImport } from './routes/_authenticated/guincho'
+import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated/frotas'
+import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
+import { Route as AuthenticatedCombustivelRouteImport } from './routes/_authenticated/combustivel'
+import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 
-const MetasRoute = MetasRouteImport.update({
-  id: '/metas',
-  path: '/metas',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GuinchoRoute = GuinchoRouteImport.update({
-  id: '/guincho',
-  path: '/guincho',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FrotasRoute = FrotasRouteImport.update({
-  id: '/frotas',
-  path: '/frotas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ComprasRoute = ComprasRouteImport.update({
-  id: '/compras',
-  path: '/compras',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CombustivelRoute = CombustivelRouteImport.update({
-  id: '/combustivel',
-  path: '/combustivel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGuinchoRoute = AuthenticatedGuinchoRouteImport.update({
+  id: '/guincho',
+  path: '/guincho',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFrotasRoute = AuthenticatedFrotasRouteImport.update({
+  id: '/frotas',
+  path: '/frotas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedComprasRoute = AuthenticatedComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCombustivelRoute =
+  AuthenticatedCombustivelRouteImport.update({
+    id: '/combustivel',
+    path: '/combustivel',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/admin/usuarios',
+    path: '/admin/usuarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/combustivel': typeof CombustivelRoute
-  '/compras': typeof ComprasRoute
-  '/frotas': typeof FrotasRoute
-  '/guincho': typeof GuinchoRoute
-  '/metas': typeof MetasRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
+  '/combustivel': typeof AuthenticatedCombustivelRoute
+  '/compras': typeof AuthenticatedComprasRoute
+  '/frotas': typeof AuthenticatedFrotasRoute
+  '/guincho': typeof AuthenticatedGuinchoRoute
+  '/metas': typeof AuthenticatedMetasRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/combustivel': typeof CombustivelRoute
-  '/compras': typeof ComprasRoute
-  '/frotas': typeof FrotasRoute
-  '/guincho': typeof GuinchoRoute
-  '/metas': typeof MetasRoute
+  '/auth': typeof AuthRoute
+  '/combustivel': typeof AuthenticatedCombustivelRoute
+  '/compras': typeof AuthenticatedComprasRoute
+  '/frotas': typeof AuthenticatedFrotasRoute
+  '/guincho': typeof AuthenticatedGuinchoRoute
+  '/metas': typeof AuthenticatedMetasRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/combustivel': typeof CombustivelRoute
-  '/compras': typeof ComprasRoute
-  '/frotas': typeof FrotasRoute
-  '/guincho': typeof GuinchoRoute
-  '/metas': typeof MetasRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/combustivel': typeof AuthenticatedCombustivelRoute
+  '/_authenticated/compras': typeof AuthenticatedComprasRoute
+  '/_authenticated/frotas': typeof AuthenticatedFrotasRoute
+  '/_authenticated/guincho': typeof AuthenticatedGuinchoRoute
+  '/_authenticated/metas': typeof AuthenticatedMetasRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/combustivel'
     | '/compras'
     | '/frotas'
     | '/guincho'
     | '/metas'
+    | '/admin/usuarios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/combustivel' | '/compras' | '/frotas' | '/guincho' | '/metas'
+  to:
+    | '/auth'
+    | '/combustivel'
+    | '/compras'
+    | '/frotas'
+    | '/guincho'
+    | '/metas'
+    | '/'
+    | '/admin/usuarios'
   id:
     | '__root__'
-    | '/'
-    | '/combustivel'
-    | '/compras'
-    | '/frotas'
-    | '/guincho'
-    | '/metas'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/combustivel'
+    | '/_authenticated/compras'
+    | '/_authenticated/frotas'
+    | '/_authenticated/guincho'
+    | '/_authenticated/metas'
+    | '/_authenticated/'
+    | '/_authenticated/admin/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  CombustivelRoute: typeof CombustivelRoute
-  ComprasRoute: typeof ComprasRoute
-  FrotasRoute: typeof FrotasRoute
-  GuinchoRoute: typeof GuinchoRoute
-  MetasRoute: typeof MetasRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/metas': {
-      id: '/metas'
-      path: '/metas'
-      fullPath: '/metas'
-      preLoaderRoute: typeof MetasRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/guincho': {
-      id: '/guincho'
-      path: '/guincho'
-      fullPath: '/guincho'
-      preLoaderRoute: typeof GuinchoRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/frotas': {
-      id: '/frotas'
-      path: '/frotas'
-      fullPath: '/frotas'
-      preLoaderRoute: typeof FrotasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/compras': {
-      id: '/compras'
-      path: '/compras'
-      fullPath: '/compras'
-      preLoaderRoute: typeof ComprasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/combustivel': {
-      id: '/combustivel'
-      path: '/combustivel'
-      fullPath: '/combustivel'
-      preLoaderRoute: typeof CombustivelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/metas': {
+      id: '/_authenticated/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof AuthenticatedMetasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/guincho': {
+      id: '/_authenticated/guincho'
+      path: '/guincho'
+      fullPath: '/guincho'
+      preLoaderRoute: typeof AuthenticatedGuinchoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/frotas': {
+      id: '/_authenticated/frotas'
+      path: '/frotas'
+      fullPath: '/frotas'
+      preLoaderRoute: typeof AuthenticatedFrotasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/compras': {
+      id: '/_authenticated/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof AuthenticatedComprasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/combustivel': {
+      id: '/_authenticated/combustivel'
+      path: '/combustivel'
+      fullPath: '/combustivel'
+      preLoaderRoute: typeof AuthenticatedCombustivelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCombustivelRoute: typeof AuthenticatedCombustivelRoute
+  AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
+  AuthenticatedFrotasRoute: typeof AuthenticatedFrotasRoute
+  AuthenticatedGuinchoRoute: typeof AuthenticatedGuinchoRoute
+  AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCombustivelRoute: AuthenticatedCombustivelRoute,
+  AuthenticatedComprasRoute: AuthenticatedComprasRoute,
+  AuthenticatedFrotasRoute: AuthenticatedFrotasRoute,
+  AuthenticatedGuinchoRoute: AuthenticatedGuinchoRoute,
+  AuthenticatedMetasRoute: AuthenticatedMetasRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  CombustivelRoute: CombustivelRoute,
-  ComprasRoute: ComprasRoute,
-  FrotasRoute: FrotasRoute,
-  GuinchoRoute: GuinchoRoute,
-  MetasRoute: MetasRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

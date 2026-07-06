@@ -29,7 +29,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { sbFrom, type Frota } from "@/lib/db-types";
 
-export const Route = createFileRoute("/frotas")({
+export const Route = createFileRoute("/_authenticated/frotas")({
   component: FrotasPage,
   head: () => ({
     meta: [
