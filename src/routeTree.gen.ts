@@ -17,6 +17,7 @@ import { Route as AuthenticatedGuinchoRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated/frotas'
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCombustivelRouteImport } from './routes/_authenticated/combustivel'
+import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -58,6 +59,12 @@ const AuthenticatedCombustivelRoute =
     path: '/combustivel',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/admin/usuarios',
+    path: '/admin/usuarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
   '/metas': typeof AuthenticatedMetasRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -76,6 +84,7 @@ export interface FileRoutesByTo {
   '/guincho': typeof AuthenticatedGuinchoRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -87,6 +96,7 @@ export interface FileRoutesById {
   '/_authenticated/guincho': typeof AuthenticatedGuinchoRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/frotas'
     | '/guincho'
     | '/metas'
+    | '/admin/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/guincho'
     | '/metas'
     | '/'
+    | '/admin/usuarios'
   id:
     | '__root__'
     | '/_authenticated'
@@ -117,6 +129,7 @@ export interface FileRouteTypes {
     | '/_authenticated/guincho'
     | '/_authenticated/metas'
     | '/_authenticated/'
+    | '/_authenticated/admin/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -182,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCombustivelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -192,6 +212,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGuinchoRoute: typeof AuthenticatedGuinchoRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -201,6 +222,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGuinchoRoute: AuthenticatedGuinchoRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
