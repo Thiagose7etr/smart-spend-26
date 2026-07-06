@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 import { Route as AuthenticatedGuinchoRouteImport } from './routes/_authenticated/guincho'
@@ -16,45 +17,49 @@ import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCombustivelRouteImport } from './routes/_authenticated/combustivel'
 
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/_authenticated/',
-  path: '/',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
-  id: '/_authenticated/metas',
+  id: '/metas',
   path: '/metas',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedGuinchoRoute = AuthenticatedGuinchoRouteImport.update({
-  id: '/_authenticated/guincho',
+  id: '/guincho',
   path: '/guincho',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFrotasRoute = AuthenticatedFrotasRouteImport.update({
-  id: '/_authenticated/frotas',
+  id: '/frotas',
   path: '/frotas',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedComprasRoute = AuthenticatedComprasRouteImport.update({
-  id: '/_authenticated/compras',
+  id: '/compras',
   path: '/compras',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCombustivelRoute =
   AuthenticatedCombustivelRouteImport.update({
-    id: '/_authenticated/combustivel',
+    id: '/combustivel',
     path: '/combustivel',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
   '/combustivel': typeof AuthenticatedCombustivelRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
   '/metas': typeof AuthenticatedMetasRoute
-  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
   '/combustivel': typeof AuthenticatedCombustivelRoute
@@ -66,6 +71,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/combustivel': typeof AuthenticatedCombustivelRoute
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
   '/_authenticated/frotas': typeof AuthenticatedFrotasRoute
@@ -76,16 +82,17 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/combustivel'
     | '/compras'
     | '/frotas'
     | '/guincho'
     | '/metas'
-    | '/'
   fileRoutesByTo: FileRoutesByTo
   to: '/combustivel' | '/compras' | '/frotas' | '/guincho' | '/metas' | '/'
   id:
     | '__root__'
+    | '/_authenticated'
     | '/_authenticated/combustivel'
     | '/_authenticated/compras'
     | '/_authenticated/frotas'
@@ -95,6 +102,64 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+}
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/metas': {
+      id: '/_authenticated/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof AuthenticatedMetasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/guincho': {
+      id: '/_authenticated/guincho'
+      path: '/guincho'
+      fullPath: '/guincho'
+      preLoaderRoute: typeof AuthenticatedGuinchoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/frotas': {
+      id: '/_authenticated/frotas'
+      path: '/frotas'
+      fullPath: '/frotas'
+      preLoaderRoute: typeof AuthenticatedFrotasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/compras': {
+      id: '/_authenticated/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof AuthenticatedComprasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/combustivel': {
+      id: '/_authenticated/combustivel'
+      path: '/combustivel'
+      fullPath: '/combustivel'
+      preLoaderRoute: typeof AuthenticatedCombustivelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+  }
+}
+
+interface AuthenticatedRouteRouteChildren {
   AuthenticatedCombustivelRoute: typeof AuthenticatedCombustivelRoute
   AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
   AuthenticatedFrotasRoute: typeof AuthenticatedFrotasRoute
@@ -103,60 +168,20 @@ export interface RootRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/metas': {
-      id: '/_authenticated/metas'
-      path: '/metas'
-      fullPath: '/metas'
-      preLoaderRoute: typeof AuthenticatedMetasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/guincho': {
-      id: '/_authenticated/guincho'
-      path: '/guincho'
-      fullPath: '/guincho'
-      preLoaderRoute: typeof AuthenticatedGuinchoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/frotas': {
-      id: '/_authenticated/frotas'
-      path: '/frotas'
-      fullPath: '/frotas'
-      preLoaderRoute: typeof AuthenticatedFrotasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/compras': {
-      id: '/_authenticated/compras'
-      path: '/compras'
-      fullPath: '/compras'
-      preLoaderRoute: typeof AuthenticatedComprasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/combustivel': {
-      id: '/_authenticated/combustivel'
-      path: '/combustivel'
-      fullPath: '/combustivel'
-      preLoaderRoute: typeof AuthenticatedCombustivelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
-}
-
-const rootRouteChildren: RootRouteChildren = {
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCombustivelRoute: AuthenticatedCombustivelRoute,
   AuthenticatedComprasRoute: AuthenticatedComprasRoute,
   AuthenticatedFrotasRoute: AuthenticatedFrotasRoute,
   AuthenticatedGuinchoRoute: AuthenticatedGuinchoRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
