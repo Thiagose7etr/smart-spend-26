@@ -4,6 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "editor" | "viewer";
 export type TabName = "dashboard" | "compras" | "metas" | "frotas" | "combustivel" | "guincho";
+export type DashboardWidget =
+  | "kpis"
+  | "gasto-meta"
+  | "top-categorias"
+  | "evolucao"
+  | "top-fornecedores";
+
+export const DASHBOARD_WIDGETS: { key: DashboardWidget; label: string }[] = [
+  { key: "kpis", label: "Indicadores (KPIs)" },
+  { key: "gasto-meta", label: "Gasto x Meta por mês" },
+  { key: "top-categorias", label: "Top categorias" },
+  { key: "evolucao", label: "Evolução mensal" },
+  { key: "top-fornecedores", label: "Top fornecedores" },
+];
 
 export type SessionState = {
   userId: string | null;
@@ -31,15 +45,23 @@ export function useCurrentUserAccess() {
     enabled: !!userId,
     queryKey: ["me-access", userId],
     queryFn: async () => {
-      const [profileRes, rolesRes, permsRes] = await Promise.all([
+      const [profileRes, rolesRes, permsRes, widgetsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId!).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId!),
         supabase.from("user_tab_permissions").select("tab, can_edit").eq("user_id", userId!),
+        supabase
+          .from("user_dashboard_widgets")
+          .select("widget, hidden")
+          .eq("user_id", userId!),
       ]);
       const roles = ((rolesRes.data ?? []) as { role: AppRole }[]).map((r) => r.role);
       const perms: Partial<Record<TabName, boolean>> = {};
       for (const p of (permsRes.data ?? []) as { tab: TabName; can_edit: boolean }[]) {
         perms[p.tab] = p.can_edit;
+      }
+      const hiddenWidgets = new Set<DashboardWidget>();
+      for (const w of (widgetsRes.data ?? []) as { widget: DashboardWidget; hidden: boolean }[]) {
+        if (w.hidden) hiddenWidgets.add(w.widget);
       }
       const isAdmin = roles.includes("admin");
       const isEditor = roles.includes("editor");
@@ -49,6 +71,8 @@ export function useCurrentUserAccess() {
         perms,
         isAdmin,
         isEditor,
+        hiddenWidgets,
+        canSeeWidget: (w: DashboardWidget) => isAdmin || !hiddenWidgets.has(w),
         canEdit: (tab: TabName) => isAdmin || isEditor || !!perms[tab],
         canView: (_tab: TabName) => {
           // Todo usuário ativo pode visualizar todas as abas.
