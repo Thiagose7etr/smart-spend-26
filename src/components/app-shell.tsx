@@ -29,6 +29,10 @@ const NAV: { to: string; label: string; icon: typeof LayoutDashboard; tab: TabNa
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { access, email } = useCurrentUserAccess();
+  const displayName =
+    access?.profile?.full_name?.trim() ||
+    email?.split("@")[0] ||
+    "";
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -52,8 +56,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="h-10 w-10 rounded-xl object-cover"
             style={{ boxShadow: "var(--shadow-glow)" }}
           />
-          <div>
-            <div className="text-sm font-semibold tracking-wide">THcontrol</div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold tracking-wide flex items-center gap-2">
+              <span>THcontrol</span>
+              {displayName && (
+                <span className="text-primary font-medium truncate max-w-[110px]">
+                  · {displayName}
+                </span>
+              )}
+            </div>
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
               Fleet & Purchases
             </div>
@@ -126,6 +137,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2">
           <img src={thcLogo.url} alt="THcontrol" className="h-8 w-8 rounded-lg object-cover" />
           <span className="font-semibold text-sm">THcontrol</span>
+          {displayName && (
+            <span className="text-xs text-primary font-medium truncate max-w-[110px]">
+              · {displayName}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {access?.isAdmin && (
