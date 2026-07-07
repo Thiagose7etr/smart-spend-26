@@ -127,12 +127,27 @@ export function AppShell({ children }: { children: ReactNode }) {
           <img src={thcLogo.url} alt="THcontrol" className="h-8 w-8 rounded-lg object-cover" />
           <span className="font-semibold text-sm">THcontrol</span>
         </div>
-        <button
-          onClick={signOut}
-          className="text-xs text-muted-foreground inline-flex items-center gap-1"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Sair
-        </button>
+        <div className="flex items-center gap-3">
+          {access?.isAdmin && (
+            <Link
+              to="/admin/usuarios"
+              className={cn(
+                "text-xs inline-flex items-center gap-1",
+                pathname.startsWith("/admin")
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Shield className="h-3.5 w-3.5" /> Admin
+            </Link>
+          )}
+          <button
+            onClick={signOut}
+            className="text-xs text-muted-foreground inline-flex items-center gap-1"
+          >
+            <LogOut className="h-3.5 w-3.5" /> Sair
+          </button>
+        </div>
       </div>
 
       <main className="flex-1 min-w-0 pt-14 md:pt-0">
