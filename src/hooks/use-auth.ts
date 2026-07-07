@@ -50,11 +50,10 @@ export function useCurrentUserAccess() {
         isAdmin,
         isEditor,
         canEdit: (tab: TabName) => isAdmin || isEditor || !!perms[tab],
-        canView: (tab: TabName) => {
-          if (isAdmin || isEditor) return true;
-          if (tab === "dashboard") return true;
-          // viewer: can view any tab where they have a permission row (edit or not)
-          return perms[tab] !== undefined;
+        canView: (_tab: TabName) => {
+          // Todo usuário ativo pode visualizar todas as abas.
+          // O admin controla apenas quem pode EDITAR cada aba.
+          return true;
         },
       };
     },
