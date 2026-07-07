@@ -175,6 +175,8 @@ export type Database = {
           status: string | null
           tipo: string | null
           updated_at: string
+          motorista_nome: string | null
+          motorista_telefone: string | null
         }
         Insert: {
           created_at?: string
@@ -189,6 +191,8 @@ export type Database = {
           status?: string | null
           tipo?: string | null
           updated_at?: string
+          motorista_nome?: string | null
+          motorista_telefone?: string | null
         }
         Update: {
           created_at?: string
@@ -203,6 +207,8 @@ export type Database = {
           status?: string | null
           tipo?: string | null
           updated_at?: string
+          motorista_nome?: string | null
+          motorista_telefone?: string | null
         }
         Relationships: []
       }

@@ -74,10 +74,10 @@ export function useCurrentUserAccess() {
         hiddenWidgets,
         canSeeWidget: (w: DashboardWidget) => isAdmin || !hiddenWidgets.has(w),
         canEdit: (tab: TabName) => isAdmin || isEditor || !!perms[tab],
-        canView: (_tab: TabName) => {
-          // Todo usuário ativo pode visualizar todas as abas.
-          // O admin controla apenas quem pode EDITAR cada aba.
-          return true;
+        canView: (tab: TabName) => {
+          if (isAdmin || isEditor) return true;
+          if (tab === "dashboard") return true;
+          return perms[tab] !== undefined;
         },
       };
     },

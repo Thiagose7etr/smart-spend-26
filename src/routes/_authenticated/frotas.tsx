@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,10 +24,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Truck, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, Search, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { sbFrom, type Frota } from "@/lib/db-types";
+import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/frotas")({
   component: FrotasPage,
@@ -50,6 +51,7 @@ const emptyForm = (): Partial<Frota> => ({
 
 function FrotasPage() {
   const qc = useQueryClient();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<Partial<Frota>>(emptyForm());
   const [busca, setBusca] = useState("");
@@ -112,6 +114,41 @@ function FrotasPage() {
     },
   });
 
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões…</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access || !access.canView("frotas")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Frotas</strong>. 
+                Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const canEdit = access.canEdit("frotas");
+
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -120,49 +157,51 @@ function FrotasPage() {
           <h1 className="text-3xl font-bold tracking-tight">Frota</h1>
           <p className="text-sm text-muted-foreground mt-1">{frotas.length} veículos cadastrados</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setForm(emptyForm())} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-              <Plus className="h-4 w-4 mr-2" /> Nova frota
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{form.id ? "Editar frota" : "Nova frota"}</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Código</Label>
-                <Input value={form.codigo ?? ""} onChange={(e) => setForm({ ...form, codigo: e.target.value })} placeholder="201" />
-              </div>
-              <div>
-                <Label className="text-xs">Placa</Label>
-                <Input value={form.placa ?? ""} onChange={(e) => setForm({ ...form, placa: e.target.value })} placeholder="ABC1D23" />
-              </div>
-              <div>
-                <Label className="text-xs">Tipo</Label>
-                <Input value={form.tipo ?? ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })} placeholder="ROMEU E JULIETA" />
-              </div>
-              <div>
-                <Label className="text-xs">Modelo</Label>
-                <Input value={form.modelo ?? ""} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-xs">Marca</Label>
-                <Input value={form.marca ?? ""} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-xs">Chassi</Label>
-                <Input value={form.chassi ?? ""} onChange={(e) => setForm({ ...form, chassi: e.target.value })} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending || !form.codigo} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-                {salvar.isPending ? "Salvando…" : "Salvar"}
+        {canEdit && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setForm(emptyForm())} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                <Plus className="h-4 w-4 mr-2" /> Nova frota
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{form.id ? "Editar frota" : "Nova frota"}</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Código</Label>
+                  <Input value={form.codigo ?? ""} onChange={(e) => setForm({ ...form, codigo: e.target.value })} placeholder="201" />
+                </div>
+                <div>
+                  <Label className="text-xs">Placa</Label>
+                  <Input value={form.placa ?? ""} onChange={(e) => setForm({ ...form, placa: e.target.value })} placeholder="ABC1D23" />
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo</Label>
+                  <Input value={form.tipo ?? ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })} placeholder="ROMEU E JULIETA" />
+                </div>
+                <div>
+                  <Label className="text-xs">Modelo</Label>
+                  <Input value={form.modelo ?? ""} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Marca</Label>
+                  <Input value={form.marca ?? ""} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Chassi</Label>
+                  <Input value={form.chassi ?? ""} onChange={(e) => setForm({ ...form, chassi: e.target.value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending || !form.codigo} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                  {salvar.isPending ? "Salvando…" : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="mb-4">
@@ -188,26 +227,28 @@ function FrotasPage() {
                     <div className="text-lg font-bold tabular-nums">{f.codigo}</div>
                   </div>
                 </div>
-                <div className="opacity-0 group-hover:opacity-100 transition flex gap-1">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(f); setDialogOpen(true); }}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir frota {f.codigo}?</AlertDialogTitle>
-                        <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => excluir.mutate(f.id)} className="bg-destructive">Excluir</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                {canEdit && (
+                  <div className="opacity-0 group-hover:opacity-100 transition flex gap-1">
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(f); setDialogOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir frota {f.codigo}?</AlertDialogTitle>
+                          <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => excluir.mutate(f.id)} className="bg-destructive">Excluir</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </div>
               <div className="mt-4 space-y-1.5 text-sm">
                 <Row label="Placa" value={f.placa} mono />

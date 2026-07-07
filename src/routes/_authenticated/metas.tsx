@@ -29,10 +29,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CATEGORIAS, MESES, fmtBRL, sbFrom, type Compra, type Meta } from "@/lib/db-types";
+import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/metas")({
   component: MetasPage,
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/_authenticated/metas")({
 
 function MetasPage() {
   const qc = useQueryClient();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
   const now = new Date();
   const [mes, setMes] = useState<string>(MESES[now.getMonth()]);
   const [ano, setAno] = useState<number>(now.getFullYear());
@@ -134,6 +136,41 @@ function MetasPage() {
     setDialogOpen(true);
   };
 
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões…</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access || !access.canView("metas")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Metas</strong>. 
+                Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const canEdit = access.canEdit("metas");
+
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -160,53 +197,55 @@ function MetasPage() {
               {anos.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={novo} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-                <Plus className="h-4 w-4 mr-2" /> Definir meta
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{form.id ? "Editar meta" : "Nova meta"}</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-2">
-                <div>
-                  <Label className="text-xs">Categoria</Label>
-                  <Select value={form.categoria} onValueChange={(v) => setForm({ ...form, categoria: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+          {canEdit && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={novo} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                  <Plus className="h-4 w-4 mr-2" /> Definir meta
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{form.id ? "Editar meta" : "Nova meta"}</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
                   <div>
-                    <Label className="text-xs">Mês</Label>
-                    <Select value={form.mes} onValueChange={(v) => setForm({ ...form, mes: v })}>
+                    <Label className="text-xs">Categoria</Label>
+                    <Select value={form.categoria} onValueChange={(v) => setForm({ ...form, categoria: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {MESES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Mês</Label>
+                      <Select value={form.mes} onValueChange={(v) => setForm({ ...form, mes: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {MESES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Ano</Label>
+                      <Input type="number" value={form.ano} onChange={(e) => setForm({ ...form, ano: Number(e.target.value) })} />
+                    </div>
+                  </div>
                   <div>
-                    <Label className="text-xs">Ano</Label>
-                    <Input type="number" value={form.ano} onChange={(e) => setForm({ ...form, ano: Number(e.target.value) })} />
+                    <Label className="text-xs">Valor da meta (R$)</Label>
+                    <Input type="number" step="0.01" value={form.valor_meta} onChange={(e) => setForm({ ...form, valor_meta: Number(e.target.value) })} />
                   </div>
                 </div>
-                <div>
-                  <Label className="text-xs">Valor da meta (R$)</Label>
-                  <Input type="number" step="0.01" value={form.valor_meta} onChange={(e) => setForm({ ...form, valor_meta: Number(e.target.value) })} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-                  {salvar.isPending ? "Salvando…" : "Salvar meta"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                    {salvar.isPending ? "Salvando…" : "Salvar meta"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -224,7 +263,7 @@ function MetasPage() {
                   <TableHead className="text-right w-[140px]">Realizado</TableHead>
                   <TableHead className="w-[200px]">Uso</TableHead>
                   <TableHead className="text-right w-[140px]">Diferença</TableHead>
-                  <TableHead className="w-[80px]" />
+                  {canEdit && <TableHead className="w-[80px]" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -250,9 +289,11 @@ function MetasPage() {
                           {fmtBRL(Math.abs(l.diferenca))}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="ghost" onClick={() => editar(l)}>Editar</Button>
-                      </TableCell>
+                      {canEdit && (
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={() => editar(l)}>Editar</Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}

@@ -29,10 +29,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2, TrendingDown, CalendarClock } from "lucide-react";
+import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2, TrendingDown, CalendarClock, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { fmtNum, sbFrom, type Combustivel } from "@/lib/db-types";
+import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/combustivel")({
   component: CombustivelPage,
@@ -62,6 +63,7 @@ const emptyForm = (): FormState => ({
 
 function CombustivelPage() {
   const qc = useQueryClient();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
 
@@ -141,6 +143,41 @@ function CombustivelPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["combustivel"] }),
   });
 
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões…</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access || !access.canView("combustivel")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Combustível</strong>. 
+                Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const canEdit = access.canEdit("combustivel");
+
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -149,61 +186,63 @@ function CombustivelPage() {
           <h1 className="text-3xl font-bold tracking-tight">Combustível</h1>
           <p className="text-sm text-muted-foreground mt-1">Registro de entradas e consumo por diesel.</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setForm(emptyForm())} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-              <Plus className="h-4 w-4 mr-2" /> Nova movimentação
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nova movimentação</DialogTitle></DialogHeader>
-            <div className="grid gap-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Data</Label>
-                  <Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="text-xs">Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="S10">Diesel S10</SelectItem>
-                      <SelectItem value="S500">Diesel S500</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Movimento</Label>
-                  <Select value={form.movimento} onValueChange={(v) => setForm({ ...form, movimento: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ENTRADA">Entrada (compra)</SelectItem>
-                      <SelectItem value="SAIDA">Saída (consumo)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Quantidade (litros)</Label>
-                  <Input type="number" step="0.01" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })} />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Frota (se saída)</Label>
-                <Input value={form.frota ?? ""} onChange={(e) => setForm({ ...form, frota: e.target.value })} placeholder="Ex: 201" />
-              </div>
-              <div>
-                <Label className="text-xs">Observação</Label>
-                <Input value={form.observacao ?? ""} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-                {salvar.isPending ? "Salvando…" : "Registrar"}
+        {canEdit && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setForm(emptyForm())} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                <Plus className="h-4 w-4 mr-2" /> Nova movimentação
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Nova movimentação</DialogTitle></DialogHeader>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Data</Label>
+                    <Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Tipo</Label>
+                    <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="S10">Diesel S10</SelectItem>
+                        <SelectItem value="S500">Diesel S500</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Movimento</Label>
+                    <Select value={form.movimento} onValueChange={(v) => setForm({ ...form, movimento: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ENTRADA">Entrada (compra)</SelectItem>
+                        <SelectItem value="SAIDA">Saída (consumo)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Quantidade (litros)</Label>
+                    <Input type="number" step="0.01" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Frota (se saída)</Label>
+                  <Input value={form.frota ?? ""} onChange={(e) => setForm({ ...form, frota: e.target.value })} placeholder="Ex: 201" />
+                </div>
+                <div>
+                  <Label className="text-xs">Observação</Label>
+                  <Input value={form.observacao ?? ""} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                  {salvar.isPending ? "Salvando…" : "Registrar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -245,7 +284,7 @@ function CombustivelPage() {
                   <TableHead className="text-right">Litros</TableHead>
                   <TableHead>Frota</TableHead>
                   <TableHead>Observação</TableHead>
-                  <TableHead />
+                  {canEdit && <TableHead />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -266,11 +305,13 @@ function CombustivelPage() {
                     <TableCell className="text-right tabular-nums font-medium">{fmtNum(m.quantidade)}</TableCell>
                     <TableCell className="text-xs">{m.frota || "-"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{m.observacao || "-"}</TableCell>
-                    <TableCell>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => excluir.mutate(m.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
+                    {canEdit && (
+                      <TableCell>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => excluir.mutate(m.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

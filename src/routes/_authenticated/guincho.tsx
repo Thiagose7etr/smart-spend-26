@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Wrench, MapPin, Trash2, Pencil } from "lucide-react";
+import { Plus, Wrench, MapPin, Trash2, Pencil, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { sbFrom, type Guincho } from "@/lib/db-types";
+import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/guincho")({
   component: GuinchoPage,
@@ -53,10 +54,13 @@ const empty = (): Partial<Guincho> => ({
   endereco_retirada: "",
   endereco_entrega: "",
   status: "PENDENTE",
+  motorista_nome: "",
+  motorista_telefone: "",
 });
 
 function GuinchoPage() {
   const qc = useQueryClient();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Guincho>>(empty());
 
@@ -81,6 +85,8 @@ function GuinchoPage() {
         endereco_retirada: f.endereco_retirada || null,
         endereco_entrega: f.endereco_entrega || null,
         status: f.status || "PENDENTE",
+        motorista_nome: f.motorista_nome || null,
+        motorista_telefone: f.motorista_telefone || null,
       };
       if (f.id) {
         const { error } = await sbFrom("guincho").update(payload).eq("id", f.id);
@@ -107,6 +113,41 @@ function GuinchoPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["guincho"] }),
   });
 
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões…</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access || !access.canView("guincho")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Guincho</strong>. 
+                Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const canEdit = access.canEdit("guincho");
+
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -115,69 +156,79 @@ function GuinchoPage() {
           <h1 className="text-3xl font-bold tracking-tight">Guincho</h1>
           <p className="text-sm text-muted-foreground mt-1">{itens.length} solicitações registradas</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setForm(empty())} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-              <Plus className="h-4 w-4 mr-2" /> Nova solicitação
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>{form.id ? "Editar" : "Nova"} solicitação</DialogTitle></DialogHeader>
-            <div className="grid gap-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Data</Label>
-                  <Input type="date" value={form.data ?? ""} onChange={(e) => setForm({ ...form, data: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="text-xs">Status</Label>
-                  <Select value={form.status ?? "PENDENTE"} onValueChange={(v) => setForm({ ...form, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PENDENTE">Pendente</SelectItem>
-                      <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
-                      <SelectItem value="CONCLUIDO">Concluído</SelectItem>
-                      <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Frota</Label>
-                  <Input value={form.frota ?? ""} onChange={(e) => setForm({ ...form, frota: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="text-xs">Tipo</Label>
-                  <Input value={form.tipo ?? ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })} placeholder="ROLLON" />
-                </div>
-                <div>
-                  <Label className="text-xs">Modelo</Label>
-                  <Input value={form.modelo ?? ""} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="text-xs">Peso (kg)</Label>
-                  <Input type="number" value={form.peso_kg ?? ""} onChange={(e) => setForm({ ...form, peso_kg: Number(e.target.value) })} />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs">Problema</Label>
-                <Textarea rows={2} value={form.problema ?? ""} onChange={(e) => setForm({ ...form, problema: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-xs">Endereço de retirada</Label>
-                <Input value={form.endereco_retirada ?? ""} onChange={(e) => setForm({ ...form, endereco_retirada: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-xs">Endereço de entrega</Label>
-                <Input value={form.endereco_entrega ?? ""} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
-                {salvar.isPending ? "Salvando…" : "Salvar"}
+        {canEdit && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setForm(empty())} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                <Plus className="h-4 w-4 mr-2" /> Nova solicitação
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>{form.id ? "Editar" : "Nova"} solicitação</DialogTitle></DialogHeader>
+              <div className="grid gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Data</Label>
+                    <Input type="date" value={form.data ?? ""} onChange={(e) => setForm({ ...form, data: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Status</Label>
+                    <Select value={form.status ?? "PENDENTE"} onValueChange={(v) => setForm({ ...form, status: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PENDENTE">Pendente</SelectItem>
+                        <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+                        <SelectItem value="CONCLUIDO">Concluído</SelectItem>
+                        <SelectItem value="CANCELADO">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Frota</Label>
+                    <Input value={form.frota ?? ""} onChange={(e) => setForm({ ...form, frota: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Tipo</Label>
+                    <Input value={form.tipo ?? ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })} placeholder="ROLLON" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Modelo</Label>
+                    <Input value={form.modelo ?? ""} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Peso (kg)</Label>
+                    <Input type="number" value={form.peso_kg ?? ""} onChange={(e) => setForm({ ...form, peso_kg: Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nome do Motorista</Label>
+                    <Input value={form.motorista_nome ?? ""} onChange={(e) => setForm({ ...form, motorista_nome: e.target.value })} placeholder="Nome do motorista" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Telefone do Motorista</Label>
+                    <Input value={form.motorista_telefone ?? ""} onChange={(e) => setForm({ ...form, motorista_telefone: e.target.value })} placeholder="(00) 00000-0000" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Problema</Label>
+                  <Textarea rows={2} value={form.problema ?? ""} onChange={(e) => setForm({ ...form, problema: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Endereço de retirada</Label>
+                  <Input value={form.endereco_retirada ?? ""} onChange={(e) => setForm({ ...form, endereco_retirada: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Endereço de entrega</Label>
+                  <Input value={form.endereco_entrega ?? ""} onChange={(e) => setForm({ ...form, endereco_entrega: e.target.value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
+                  {salvar.isPending ? "Salvando…" : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -219,14 +270,25 @@ function GuinchoPage() {
                     )}
                   </div>
                 )}
-                <div className="mt-4 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(g); setOpen(true); }}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => excluir.mutate(g.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                {(g.motorista_nome || g.motorista_telefone) && (
+                  <div className="mt-3 pt-2 border-t border-border/40 text-xs text-muted-foreground space-y-0.5">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/75 font-semibold">Motorista</div>
+                    <div className="flex justify-between gap-2 text-foreground font-medium">
+                      <span>{g.motorista_nome || "—"}</span>
+                      {g.motorista_telefone && <span className="font-mono text-[11px] text-muted-foreground">{g.motorista_telefone}</span>}
+                    </div>
+                  </div>
+                )}
+                {canEdit && (
+                  <div className="mt-4 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(g); setOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => excluir.mutate(g.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

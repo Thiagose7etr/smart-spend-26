@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { AppShell } from "@/components/app-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,12 +41,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, FileDown, ScanLine, Loader2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileDown, ScanLine, Loader2, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, type Compra } from "@/lib/db-types";
 import { useServerFn } from "@tanstack/react-start";
 import { extrairNotaFiscal } from "@/lib/nf-ocr.functions";
+import * as XLSX from "xlsx";
+import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/compras")({
   component: ComprasPage,
@@ -74,6 +76,7 @@ const emptyForm = (): FormState => ({
 
 function ComprasPage() {
   const qc = useQueryClient();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
   const [filtroMes, setFiltroMes] = useState<string>("todos");
@@ -86,6 +89,13 @@ function ComprasPage() {
   const [scanLoading, setScanLoading] = useState(false);
   const scanInputRef = useRef<HTMLInputElement>(null);
   const runOcr = useServerFn(extrairNotaFiscal);
+
+  // Importação Excel
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importData, setImportData] = useState<{ newRows: any[]; dupRows: any[] } | null>(null);
+  const [importMode, setImportMode] = useState<"skip" | "update" | "all">("skip");
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const onScanFile = async (file: File) => {
     setScanLoading(true);
@@ -117,6 +127,183 @@ function ComprasPage() {
       if (scanInputRef.current) scanInputRef.current.value = "";
     }
   };
+
+  const findCol = (headers: string[], alternates: string[]): string | null => {
+    for (const alt of alternates) {
+      const matched = headers.find((h) => {
+        const normalizedH = h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+        const normalizedAlt = alt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+        return normalizedH === normalizedAlt || normalizedH.includes(normalizedAlt);
+      });
+      if (matched) return matched;
+    }
+    return null;
+  };
+
+  const onImportFile = (file: File) => {
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary", cellDates: true });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json<any>(sheet, { defval: null });
+
+        if (json.length === 0) {
+          toast.error("A planilha está vazia.");
+          return;
+        }
+
+        const headerRow = Object.keys(json[0]);
+        
+        const colMap: Record<string, string> = {
+          nf: findCol(headerRow, ["nf", "nota", "notafiscal", "invoice"]) || "",
+          fornecedor: findCol(headerRow, ["fornecedor", "empresa", "provider", "supplier", "vendor"]) || "",
+          data_emissao: findCol(headerRow, ["data", "dataemissao", "date", "emissao", "emissão"]) || "",
+          item: findCol(headerRow, ["item", "descricao", "descrição", "desc", "description", "produto"]) || "",
+          quant: findCol(headerRow, ["quant", "qtd", "quantidade", "qty", "quantity"]) || "",
+          valor_unit: findCol(headerRow, ["vunit", "unitario", "unitário", "valorunit", "unitprice", "unit_price"]) || "",
+          valor_total: findCol(headerRow, ["vtotal", "total", "valortotal", "totalprice", "total_price"]) || "",
+          frota: findCol(headerRow, ["frota", "veiculo", "veículo", "placa", "fleet"]) || "",
+          prazo_pag: findCol(headerRow, ["prazo", "prazopag", "prazopagamento", "terms"]) || "",
+          tipo: findCol(headerRow, ["tipo", "categoria", "type", "category"]) || "",
+        };
+
+        const parsedRows: any[] = [];
+
+        for (const row of json) {
+          const nfVal = colMap.nf ? String(row[colMap.nf] ?? "").trim() : null;
+          const fornecedorVal = colMap.fornecedor ? String(row[colMap.fornecedor] ?? "").trim() : null;
+          
+          let dateVal: string | null = null;
+          if (colMap.data_emissao) {
+            const rawDate = row[colMap.data_emissao];
+            if (rawDate instanceof Date) {
+              dateVal = rawDate.toISOString().slice(0, 10);
+            } else if (typeof rawDate === "number") {
+              const date = new Date((rawDate - 25569) * 86400 * 1000);
+              dateVal = date.toISOString().slice(0, 10);
+            } else if (rawDate) {
+              const parsed = new Date(String(rawDate).trim());
+              if (!Number.isNaN(parsed.getTime())) {
+                dateVal = parsed.toISOString().slice(0, 10);
+              }
+            }
+          }
+          if (!dateVal) dateVal = new Date().toISOString().slice(0, 10);
+
+          const itemVal = colMap.item ? String(row[colMap.item] ?? "").trim() : null;
+          const quantVal = colMap.quant ? Number(String(row[colMap.quant] ?? "0").replace(/[^0-9.,-]/g, '').replace(',', '.')) : 1;
+          const unitVal = colMap.valor_unit ? Number(String(row[colMap.valor_unit] ?? "0").replace(/[^0-9.,-]/g, '').replace(',', '.')) : 0;
+          let totalVal = colMap.valor_total ? Number(String(row[colMap.valor_total] ?? "0").replace(/[^0-9.,-]/g, '').replace(',', '.')) : 0;
+          
+          if (!totalVal && unitVal) {
+            totalVal = quantVal * unitVal;
+          }
+
+          const frotaVal = colMap.frota ? String(row[colMap.frota] ?? "").trim() : null;
+          const prazoVal = colMap.prazo_pag ? String(row[colMap.prazo_pag] ?? "").trim() : null;
+          
+          let tipoVal = colMap.tipo ? String(row[colMap.tipo] ?? "").trim().toUpperCase() : "PEÇAS";
+          const matchedCategory = CATEGORIAS.find((c) => c === tipoVal || c.toLowerCase() === tipoVal.toLowerCase());
+          if (matchedCategory) {
+            tipoVal = matchedCategory;
+          }
+
+          const info = mesFromDate(dateVal);
+
+          parsedRows.push({
+            nf: nfVal,
+            fornecedor: fornecedorVal,
+            data_emissao: dateVal,
+            item: itemVal,
+            quant: quantVal,
+            valor_unit: unitVal,
+            valor_total: totalVal,
+            frota: frotaVal,
+            prazo_pag: prazoVal,
+            tipo: tipoVal,
+            mes: info?.mes ?? null,
+            ano: info?.ano ?? null,
+          });
+        }
+
+        const newRows: any[] = [];
+        const dupRows: any[] = [];
+
+        for (const row of parsedRows) {
+          const isDup = compras.some((c) => {
+            const matchNf = (c.nf || "").trim().toLowerCase() === (row.nf || "").trim().toLowerCase();
+            const matchDate = c.data_emissao === row.data_emissao;
+            const matchForn = (c.fornecedor || "").trim().toLowerCase() === (row.fornecedor || "").trim().toLowerCase();
+            return matchNf && matchDate && matchForn;
+          });
+
+          if (isDup) {
+            dupRows.push(row);
+          } else {
+            newRows.push(row);
+          }
+        }
+
+        setImportData({ newRows, dupRows });
+        setImportDialogOpen(true);
+      } catch (e) {
+        toast.error("Erro ao processar planilha: " + (e instanceof Error ? e.message : "formato inválido"));
+      } finally {
+        setImporting(false);
+        if (importInputRef.current) importInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const executarImportacao = useMutation({
+    mutationFn: async () => {
+      if (!importData) return;
+      
+      let rowsToSave: any[] = [];
+      if (importMode === "all") {
+        rowsToSave = [...importData.newRows, ...importData.dupRows];
+      } else if (importMode === "skip") {
+        rowsToSave = importData.newRows;
+      } else if (importMode === "update") {
+        rowsToSave = importData.newRows;
+        for (const row of importData.dupRows) {
+          const existing = compras.find((c) => {
+            const matchNf = (c.nf || "").trim().toLowerCase() === (row.nf || "").trim().toLowerCase();
+            const matchDate = c.data_emissao === row.data_emissao;
+            const matchForn = (c.fornecedor || "").trim().toLowerCase() === (row.fornecedor || "").trim().toLowerCase();
+            return matchNf && matchDate && matchForn;
+          });
+          if (existing) {
+            const { error } = await sbFrom("compras").update(row).eq("id", existing.id);
+            if (error) throw error;
+          }
+        }
+      }
+
+      if (rowsToSave.length > 0) {
+        const chunkSize = 200;
+        for (let i = 0; i < rowsToSave.length; i += chunkSize) {
+          const chunk = rowsToSave.slice(i, i + chunkSize);
+          const { error } = await sbFrom("compras").insert(chunk);
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["compras"] });
+      setImportDialogOpen(false);
+      setImportData(null);
+      toast.success("Importação concluída com sucesso!");
+    },
+    onError: (e: Error) => {
+      toast.error("Erro na importação: " + e.message);
+    }
+  });
 
   const { data: compras = [], isLoading } = useQuery({
     queryKey: ["compras", "all"],
@@ -238,6 +425,41 @@ function ComprasPage() {
     URL.revokeObjectURL(url);
   };
 
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões…</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access || !access.canView("compras")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Compras</strong>. 
+                Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const canEdit = access.canEdit("compras");
+
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
@@ -254,41 +476,69 @@ function ComprasPage() {
           <Button variant="outline" onClick={exportCsv}>
             <FileDown className="h-4 w-4 mr-2" /> Exportar
           </Button>
-          <input
-            ref={scanInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onScanFile(f);
-            }}
-          />
-          <Button
-            variant="outline"
-            onClick={() => scanInputRef.current?.click()}
-            disabled={scanLoading}
-          >
-            {scanLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <ScanLine className="h-4 w-4 mr-2" />
-            )}
-            {scanLoading ? "Lendo NF…" : "Escanear NF"}
-          </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
+          {canEdit && (
+            <>
+              <input
+                ref={scanInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onScanFile(f);
+                }}
+              />
               <Button
-                onClick={openNovo}
-                className="text-primary-foreground border-0"
-                style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" }}
+                variant="outline"
+                onClick={() => scanInputRef.current?.click()}
+                disabled={scanLoading}
               >
-                <Plus className="h-4 w-4 mr-2" /> Nova Compra
+                {scanLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ScanLine className="h-4 w-4 mr-2" />
+                )}
+                {scanLoading ? "Lendo NF…" : "Escanear NF"}
               </Button>
-            </DialogTrigger>
-            <CompraDialog form={form} setForm={setForm} onSave={() => salvar.mutate(form)} saving={salvar.isPending} tipos={tiposUnicos} />
-          </Dialog>
+
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".xlsx,.xlsm"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onImportFile(f);
+                }}
+              />
+              <Button
+                variant="outline"
+                onClick={() => importInputRef.current?.click()}
+                disabled={importing}
+              >
+                {importing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-500" />
+                )}
+                {importing ? "Lendo Planilha…" : "Importar Planilha"}
+              </Button>
+
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={openNovo}
+                    className="text-primary-foreground border-0"
+                    style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-glow)" }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Nova Compra
+                  </Button>
+                </DialogTrigger>
+                <CompraDialog form={form} setForm={setForm} onSave={() => salvar.mutate(form)} saving={salvar.isPending} tipos={tiposUnicos} />
+              </Dialog>
+            </>
+          )}
         </div>
       </div>
 
@@ -362,7 +612,7 @@ function ComprasPage() {
                 <TableHead className="w-[130px] text-right">Total</TableHead>
                 <TableHead className="w-[80px]">Frota</TableHead>
                 <TableHead className="w-[140px]">Tipo</TableHead>
-                <TableHead className="w-[80px]" />
+                {canEdit && <TableHead className="w-[80px]" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -386,34 +636,36 @@ function ComprasPage() {
                   <TableCell>
                     {c.tipo && <Badge variant="secondary" className="text-[10px] font-medium">{c.tipo}</Badge>}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditar(c)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir compra?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. {c.fornecedor} - {c.item}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => excluir.mutate(c.id)} className="bg-destructive text-destructive-foreground">
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
+                  {canEdit && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditar(c)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir compra?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. {c.fornecedor} - {c.item}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => excluir.mutate(c.id)} className="bg-destructive text-destructive-foreground">
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -425,6 +677,65 @@ function ComprasPage() {
           </div>
         )}
       </Card>
+
+      {/* Import Preview Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Resumo da Importação</DialogTitle>
+          </DialogHeader>
+          {importData && (
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Lemos a planilha com sucesso. Aqui está o resumo dos lançamentos encontrados:
+              </p>
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-primary tabular-nums">
+                    {importData.newRows.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Novas compras</div>
+                </div>
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-amber-500 tabular-nums">
+                    {importData.dupRows.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Duplicatas prováveis</div>
+                </div>
+              </div>
+
+              {importData.dupRows.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs">Como deseja tratar os registros duplicados?</Label>
+                  <Select value={importMode} onValueChange={(v) => setImportMode(v as any)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="skip">Ignorar duplicatas (salva apenas novos registros)</SelectItem>
+                      <SelectItem value="update">Atualizar existentes (sobrescreve os dados no banco)</SelectItem>
+                      <SelectItem value="all">Importar tudo (pode criar duplicatas no banco)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => executarImportacao.mutate()}
+              disabled={executarImportacao.isPending}
+              className="text-primary-foreground border-0"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              {executarImportacao.isPending ? "Importando…" : "Confirmar Importação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

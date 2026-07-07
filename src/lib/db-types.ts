@@ -56,6 +56,8 @@ export type Guincho = {
   endereco_retirada: string | null;
   endereco_entrega: string | null;
   status: string | null;
+  motorista_nome: string | null;
+  motorista_telefone: string | null;
 };
 
 export const MESES = [
