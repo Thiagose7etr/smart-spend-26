@@ -24,9 +24,15 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUserAccess, type AppRole, type TabName } from "@/hooks/use-auth";
+import {
+  useCurrentUserAccess,
+  DASHBOARD_WIDGETS,
+  type AppRole,
+  type TabName,
+  type DashboardWidget,
+} from "@/hooks/use-auth";
 import { deleteUserAccount } from "@/lib/admin.functions";
-import { Shield, Trash2, Settings2, Users } from "lucide-react";
+import { Shield, Trash2, Settings2, Users, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({
@@ -343,6 +349,47 @@ function PermissionsDialog({ userId, onClose }: { userId: string | null; onClose
     },
   });
 
+  const widgets = useQuery({
+    enabled: !!userId,
+    queryKey: ["user-widgets", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_dashboard_widgets")
+        .select("widget, hidden")
+        .eq("user_id", userId!);
+      if (error) throw error;
+      const map: Record<DashboardWidget, boolean> = {
+        kpis: true,
+        "gasto-meta": true,
+        "top-categorias": true,
+        evolucao: true,
+        "top-fornecedores": true,
+      };
+      for (const w of (data ?? []) as { widget: DashboardWidget; hidden: boolean }[]) {
+        map[w.widget] = !w.hidden;
+      }
+      return map;
+    },
+  });
+
+  const setWidget = useMutation({
+    mutationFn: async ({ widget, visible }: { widget: DashboardWidget; visible: boolean }) => {
+      if (!userId) return;
+      const { error } = await supabase
+        .from("user_dashboard_widgets")
+        .upsert(
+          { user_id: userId, widget, hidden: !visible },
+          { onConflict: "user_id,widget" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["user-widgets", userId] });
+      toast.success("Dashboard atualizado.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const upsert = useMutation({
     mutationFn: async ({ tab, has, can_edit }: { tab: string; has: boolean; can_edit: boolean }) => {
       if (!userId) return;
@@ -369,9 +416,9 @@ function PermissionsDialog({ userId, onClose }: { userId: string | null; onClose
 
   return (
     <Dialog open={!!userId} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Permissões por aba (viewer)</DialogTitle>
+          <DialogTitle>Permissões do usuário</DialogTitle>
         </DialogHeader>
         <p className="text-xs text-muted-foreground -mt-2">
           Admins e editores têm acesso total. Para viewers, marque aqui as abas que podem ver/editar.
@@ -410,6 +457,37 @@ function PermissionsDialog({ userId, onClose }: { userId: string | null; onClose
             );
           })}
         </div>
+
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <LayoutDashboard className="h-4 w-4 text-primary" />
+            <div className="text-sm font-semibold">Blocos do Dashboard</div>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Escolha quais blocos este usuário vê na tela inicial. Admins sempre veem tudo.
+          </p>
+          <div className="space-y-2">
+            {DASHBOARD_WIDGETS.map((w) => {
+              const visible = widgets.data?.[w.key] ?? true;
+              return (
+                <div
+                  key={w.key}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border/60 p-3"
+                >
+                  <div className="text-sm">{w.label}</div>
+                  <label className="flex items-center gap-2 text-xs">
+                    <Switch
+                      checked={visible}
+                      onCheckedChange={(v) => setWidget.mutate({ widget: w.key, visible: v })}
+                    />
+                    Visível
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Fechar
