@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { useCurrentUserAccess } from "@/hooks/use-auth";
 import {
   Select,
   SelectContent,
@@ -105,6 +106,9 @@ function DashboardPage() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (id: string) =>
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
+  const { access } = useCurrentUserAccess();
+  const canSee = (w: string) =>
+    access?.canSeeWidget ? access.canSeeWidget(w as never) : true;
 
   const { data: compras = [] } = useQuery({
     queryKey: ["compras", "all"],
@@ -235,6 +239,7 @@ function DashboardPage() {
       </div>
 
       {/* KPIs */}
+      {canSee("kpis") && (
       <div className="grid gap-4 md:grid-cols-3 mb-8">
         {kpis.map((k) => {
           const Icon = k.icon;
@@ -283,9 +288,11 @@ function DashboardPage() {
           );
         })}
       </div>
+      )}
 
       {/* Chart row 1 */}
       <div className="grid gap-4 lg:grid-cols-3 mb-4">
+        {canSee("gasto-meta") && (
         <CollapsibleCard
           id="gasto-meta"
           className="lg:col-span-2"
@@ -327,7 +334,9 @@ function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
         </CollapsibleCard>
+        )}
 
+        {canSee("top-categorias") && (
         <CollapsibleCard
           id="top-categorias"
           title="Top categorias"
@@ -365,10 +374,12 @@ function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
         </CollapsibleCard>
+        )}
       </div>
 
       {/* Chart row 2 */}
       <div className="grid gap-4 lg:grid-cols-3">
+        {canSee("evolucao") && (
         <CollapsibleCard
           id="evolucao"
           className="lg:col-span-2"
@@ -404,7 +415,9 @@ function DashboardPage() {
               </LineChart>
             </ResponsiveContainer>
         </CollapsibleCard>
+        )}
 
+        {canSee("top-fornecedores") && (
         <CollapsibleCard
           id="top-fornecedores"
           title="Top fornecedores"
@@ -438,6 +451,7 @@ function DashboardPage() {
             })}
           </div>
         </CollapsibleCard>
+        )}
       </div>
     </AppShell>
   );

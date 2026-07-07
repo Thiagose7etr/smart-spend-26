@@ -263,6 +263,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_dashboard_widgets: {
+        Row: {
+          created_at: string
+          hidden: boolean
+          id: string
+          updated_at: string
+          user_id: string
+          widget: string
+        }
+        Insert: {
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+          widget: string
+        }
+        Update: {
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
+          widget?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
