@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { clearInvalidAuthSession } from "@/lib/auth-session";
 
 export type AppRole = "admin" | "editor" | "viewer";
 export type TabName = "dashboard" | "compras" | "metas" | "frotas" | "combustivel" | "guincho";
@@ -27,13 +28,31 @@ export type SessionState = {
 export function useSession() {
   const [state, setState] = useState<SessionState>({ userId: null, email: null });
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    let active = true;
+
+    const setVerifiedUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!active) return;
+      if (error) {
+        await clearInvalidAuthSession();
+        if (active) setState({ userId: null, email: null });
+        return;
+      }
       setState({ userId: data.user?.id ?? null, email: data.user?.email ?? null });
-    });
+    };
+
+    setVerifiedUser();
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setState({ userId: session?.user?.id ?? null, email: session?.user?.email ?? null });
+      if (!session) {
+        setState({ userId: null, email: null });
+        return;
+      }
+      setVerifiedUser();
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
   return state;
 }
