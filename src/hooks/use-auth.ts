@@ -45,7 +45,7 @@ export function useSession() {
         if (active) setState(newState);
         return;
       }
-      const newState = { userId: data.user?.id ?? null, email: data.user?.email ?? null, loading: false };
+      const newState = { userId: data?.user?.id ?? null, email: data?.user?.email ?? null, loading: false };
       cachedSession = newState;
       if (active) setState(newState);
     };

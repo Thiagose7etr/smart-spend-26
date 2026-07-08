@@ -29,7 +29,7 @@ function AuthPage() {
         await clearInvalidAuthSession();
         return;
       }
-      if (data.user) navigate({ to: "/" });
+      if (data?.user) navigate({ to: "/" });
     });
   }, [navigate]);
 
