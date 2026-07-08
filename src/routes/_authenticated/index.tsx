@@ -18,7 +18,8 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { fmtBRL, MESES, sbFrom, type Compra, type Meta } from "@/lib/db-types";
+import { cn } from "@/lib/utils";
+import { fmtBRL, MESES, sbFrom, CATEGORIAS, type Compra, type Meta } from "@/lib/db-types";
 import {
   TrendingUp,
   TrendingDown,
@@ -27,6 +28,7 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
+  GripVertical,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -64,12 +66,13 @@ function CollapsibleCard({
 }) {
   return (
     <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 cursor-grab active:cursor-grabbing select-none">
         <CardTitle className="text-base flex items-center gap-2">
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground/35 hover:text-muted-foreground/75 transition" />
           {icon}
           {title}
         </CardTitle>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" onDragStart={(e) => e.preventDefault()} draggable={false}>
           {!collapsed && headerExtra}
           <Button
             type="button"
@@ -109,6 +112,51 @@ function DashboardPage() {
   const { access } = useCurrentUserAccess();
   const canSee = (w: string) =>
     access?.canSeeWidget ? access.canSeeWidget(w as never) : true;
+
+  const [layout, setLayout] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("dashboard-layout");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length >= 5) {
+            if (!parsed.includes("custos-categoria")) {
+              parsed.push("custos-categoria");
+            }
+            return parsed;
+          }
+        } catch {}
+      }
+    }
+    return ["gasto-meta", "top-categorias", "evolucao", "top-fornecedores", "custos-categoria"];
+  });
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null) return;
+    
+    const newLayout = [...layout];
+    const [draggedItem] = newLayout.splice(draggedIndex, 1);
+    newLayout.splice(index, 0, draggedItem);
+    
+    setLayout(newLayout);
+    localStorage.setItem("dashboard-layout", JSON.stringify(newLayout));
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
 
   const { data: compras = [] } = useQuery({
     queryKey: ["compras", "all"],
@@ -177,6 +225,17 @@ function DashboardPage() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 6);
 
+  // custos por categoria para a lista de todos os custos
+  const catListMap = new Map<string, number>();
+  CATEGORIAS.forEach((cat) => catListMap.set(cat, 0));
+  comprasFiltradas.forEach((c) => {
+    const k = c.tipo || "OUTROS";
+    catListMap.set(k, (catListMap.get(k) || 0) + Number(c.valor_total || 0));
+  });
+  const custosPorCategoria = Array.from(catListMap.entries())
+    .map(([name, value]) => ({ name, value: Math.round(value) }))
+    .sort((a, b) => b.value - a.value);
+
   const kpis = [
     {
       label: "Gasto no ano",
@@ -200,6 +259,243 @@ function DashboardPage() {
       sub: diferencaMes >= 0 ? "Abaixo da meta" : "Acima da meta",
     },
   ];
+
+
+  const renderWidget = (id: string, index: number) => {
+    const dragProps = {
+      draggable: true,
+      onDragStart: (e: React.DragEvent) => handleDragStart(e, index),
+      onDragOver: (e: React.DragEvent) => handleDragOver(e, index),
+      onDragEnd: handleDragEnd,
+      onDrop: (e: React.DragEvent) => handleDrop(e, index),
+      className: cn(
+        "transition-all duration-200 border border-transparent rounded-xl",
+        draggedIndex === index && "opacity-35 scale-[0.98] border-dashed border-primary",
+        id === "gasto-meta" || id === "evolucao" ? "lg:col-span-2" : "lg:col-span-1"
+      )
+    };
+
+    switch (id) {
+      case "gasto-meta":
+        return canSee("gasto-meta") ? (
+          <div {...dragProps} key={id}>
+            <CollapsibleCard
+              id="gasto-meta"
+              title={`Gasto x Meta por mês — ${ano}`}
+              icon={<TrendingUp className="h-4 w-4 text-primary" />}
+              collapsed={!!collapsed["gasto-meta"]}
+              onToggle={toggle}
+              headerExtra={
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Gasto
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-accent" /> Meta
+                  </span>
+                </div>
+              }
+            >
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={porMes} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--popover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                    }}
+                    itemStyle={{ color: "var(--popover-foreground)" }}
+                    labelStyle={{ color: "var(--popover-foreground)" }}
+                    formatter={(v: number) => fmtBRL(v)}
+                  />
+                  <Bar dataKey="Meta" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Gasto" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CollapsibleCard>
+          </div>
+        ) : null;
+
+      case "top-categorias":
+        return canSee("top-categorias") ? (
+          <div {...dragProps} key={id}>
+            <CollapsibleCard
+              id="top-categorias"
+              title="Top categorias"
+              icon={<Target className="h-4 w-4 text-primary" />}
+              collapsed={!!collapsed["top-categorias"]}
+              onToggle={toggle}
+            >
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={porCategoria}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={95}
+                    paddingAngle={2}
+                  >
+                    {porCategoria.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--popover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                    }}
+                    itemStyle={{ color: "var(--popover-foreground)" }}
+                    labelStyle={{ color: "var(--popover-foreground)" }}
+                    formatter={(v: number) => fmtBRL(v)}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    wrapperStyle={{ fontSize: 11, color: "var(--muted-foreground)" }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CollapsibleCard>
+          </div>
+        ) : null;
+
+      case "evolucao":
+        return canSee("evolucao") ? (
+          <div {...dragProps} key={id}>
+            <CollapsibleCard
+              id="evolucao"
+              title={`Evolução mensal — ${ano}`}
+              icon={<TrendingUp className="h-4 w-4 text-primary" />}
+              collapsed={!!collapsed["evolucao"]}
+              onToggle={toggle}
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={porMes.map((p) => ({ mes: p.mes, Gasto: p.Gasto }))}>
+                  <defs>
+                    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="var(--primary)" />
+                      <stop offset="100%" stopColor="var(--accent)" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--popover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                    }}
+                    itemStyle={{ color: "var(--popover-foreground)" }}
+                    labelStyle={{ color: "var(--popover-foreground)" }}
+                    formatter={(v: number) => fmtBRL(v)}
+                  />
+                  <Line type="monotone" dataKey="Gasto" stroke="url(#glow)" strokeWidth={3} dot={{ r: 4, fill: "var(--primary)" }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CollapsibleCard>
+          </div>
+        ) : null;
+
+      case "top-fornecedores":
+        return canSee("top-fornecedores") ? (
+          <div {...dragProps} key={id}>
+            <CollapsibleCard
+              id="top-fornecedores"
+              title="Top fornecedores"
+              icon={<ShoppingCart className="h-4 w-4 text-primary" />}
+              collapsed={!!collapsed["top-fornecedores"]}
+              onToggle={toggle}
+            >
+              <div className="space-y-3">
+                {topFornecedores.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Sem dados.</p>
+                )}
+                {topFornecedores.map((f, i) => {
+                  const max = topFornecedores[0]?.value || 1;
+                  const pct = (f.value / max) * 100;
+                  return (
+                    <div key={f.name}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium truncate max-w-[60%]">{f.name}</span>
+                        <span className="tabular-nums text-muted-foreground">{fmtBRL(f.value)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${pct}%`,
+                            background: CHART_COLORS[i % CHART_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CollapsibleCard>
+          </div>
+        ) : null;
+
+      case "custos-categoria":
+        return canSee("top-categorias") ? (
+          <div {...dragProps} key={id}>
+            <CollapsibleCard
+              id="custos-categoria"
+              title="Custos por categoria"
+              icon={<Target className="h-4 w-4 text-primary" />}
+              collapsed={!!collapsed["custos-categoria"]}
+              onToggle={toggle}
+            >
+              <div className="space-y-3">
+                {custosPorCategoria.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Sem dados.</p>
+                )}
+                {custosPorCategoria.map((f, i) => {
+                  const max = custosPorCategoria[0]?.value || 1;
+                  const pct = (f.value / max) * 100;
+                  return (
+                    <div key={f.name}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium truncate max-w-[60%]">{f.name}</span>
+                        <span className="tabular-nums text-muted-foreground">{fmtBRL(f.value)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${pct}%`,
+                            background: CHART_COLORS[i % CHART_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CollapsibleCard>
+          </div>
+        ) : null;
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <AppShell>
@@ -290,173 +586,9 @@ function DashboardPage() {
       </div>
       )}
 
-      {/* Chart row 1 */}
-      <div className="grid gap-4 lg:grid-cols-3 mb-4">
-        {canSee("gasto-meta") && (
-        <CollapsibleCard
-          id="gasto-meta"
-          className="lg:col-span-2"
-          title={`Gasto x Meta por mês — ${ano}`}
-          collapsed={!!collapsed["gasto-meta"]}
-          onToggle={toggle}
-          headerExtra={
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Gasto
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm bg-accent" /> Meta
-              </span>
-            </div>
-          }
-        >
-          <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={porMes} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="mes" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--popover)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                  }}
-                  itemStyle={{ color: "var(--popover-foreground)" }}
-                  labelStyle={{ color: "var(--popover-foreground)" }}
-                  formatter={(v: number) => fmtBRL(v)}
-                />
-                <Bar dataKey="Meta" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Gasto" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-        </CollapsibleCard>
-        )}
-
-        {canSee("top-categorias") && (
-        <CollapsibleCard
-          id="top-categorias"
-          title="Top categorias"
-          icon={<Target className="h-4 w-4 text-primary" />}
-          collapsed={!!collapsed["top-categorias"]}
-          onToggle={toggle}
-        >
-          <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={porCategoria}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={55}
-                  outerRadius={95}
-                  paddingAngle={2}
-                >
-                  {porCategoria.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--popover)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                  }}
-                  itemStyle={{ color: "var(--popover-foreground)" }}
-                  labelStyle={{ color: "var(--popover-foreground)" }}
-                  formatter={(v: number) => fmtBRL(v)}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  wrapperStyle={{ fontSize: 11, color: "var(--muted-foreground)" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-        </CollapsibleCard>
-        )}
-      </div>
-
-      {/* Chart row 2 */}
+      {/* Draggable Dashboard Grid */}
       <div className="grid gap-4 lg:grid-cols-3">
-        {canSee("evolucao") && (
-        <CollapsibleCard
-          id="evolucao"
-          className="lg:col-span-2"
-          title={`Evolução mensal — ${ano}`}
-          collapsed={!!collapsed["evolucao"]}
-          onToggle={toggle}
-        >
-          <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={porMes.map((p) => ({ mes: p.mes, Gasto: p.Gasto }))}>
-                <defs>
-                  <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="var(--primary)" />
-                    <stop offset="100%" stopColor="var(--accent)" />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="mes" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--popover)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                  }}
-                  itemStyle={{ color: "var(--popover-foreground)" }}
-                  labelStyle={{ color: "var(--popover-foreground)" }}
-                  formatter={(v: number) => fmtBRL(v)}
-                />
-                <Line type="monotone" dataKey="Gasto" stroke="url(#glow)" strokeWidth={3} dot={{ r: 4, fill: "var(--primary)" }} />
-              </LineChart>
-            </ResponsiveContainer>
-        </CollapsibleCard>
-        )}
-
-        {canSee("top-fornecedores") && (
-        <CollapsibleCard
-          id="top-fornecedores"
-          title="Top fornecedores"
-          collapsed={!!collapsed["top-fornecedores"]}
-          onToggle={toggle}
-        >
-          <div className="space-y-3">
-            {topFornecedores.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem dados.</p>
-            )}
-            {topFornecedores.map((f, i) => {
-              const max = topFornecedores[0]?.value || 1;
-              const pct = (f.value / max) * 100;
-              return (
-                <div key={f.name}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium truncate max-w-[60%]">{f.name}</span>
-                    <span className="tabular-nums text-muted-foreground">{fmtBRL(f.value)}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${pct}%`,
-                        background: CHART_COLORS[i % CHART_COLORS.length],
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CollapsibleCard>
-        )}
+        {layout.map((id, index) => renderWidget(id, index))}
       </div>
     </AppShell>
   );
