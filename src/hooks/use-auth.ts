@@ -25,8 +25,12 @@ export type SessionState = {
   email: string | null;
 };
 
+// Cache global da sessão para evitar lag/flashing nas transições de rotas
+let cachedSession: SessionState = { userId: null, email: null };
+
 export function useSession() {
-  const [state, setState] = useState<SessionState>({ userId: null, email: null });
+  const [state, setState] = useState<SessionState>(cachedSession);
+
   useEffect(() => {
     let active = true;
 
@@ -35,25 +39,43 @@ export function useSession() {
       if (!active) return;
       if (error) {
         await clearInvalidAuthSession();
-        if (active) setState({ userId: null, email: null });
+        const newState = { userId: null, email: null };
+        cachedSession = newState;
+        if (active) setState(newState);
         return;
       }
-      setState({ userId: data.user?.id ?? null, email: data.user?.email ?? null });
+      const newState = { userId: data.user?.id ?? null, email: data.user?.email ?? null };
+      cachedSession = newState;
+      if (active) setState(newState);
     };
 
-    setVerifiedUser();
+    // Só busca as informações se não estiverem no cache
+    if (!cachedSession.userId) {
+      setVerifiedUser();
+    }
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       if (!session) {
-        setState({ userId: null, email: null });
+        const newState = { userId: null, email: null };
+        cachedSession = newState;
+        setState(newState);
         return;
       }
       setVerifiedUser();
     });
+
     return () => {
       active = false;
-      sub.subscription.unsubscribe();
+      if (sub?.subscription) {
+        try {
+          sub.subscription.unsubscribe();
+        } catch (e) {
+          console.error("Erro ao desinscrever da sessão auth:", e);
+        }
+      }
     };
   }, []);
+
   return state;
 }
 
