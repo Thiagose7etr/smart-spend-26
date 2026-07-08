@@ -78,9 +78,9 @@ export function useCurrentUserAccess() {
       for (const p of (permsRes.data ?? []) as { tab: TabName; can_edit: boolean }[]) {
         perms[p.tab] = p.can_edit;
       }
-      const hiddenWidgets = new Set<DashboardWidget>();
+      const hiddenWidgetsList: DashboardWidget[] = [];
       for (const w of (widgetsRes.data ?? []) as { widget: DashboardWidget; hidden: boolean }[]) {
-        if (w.hidden) hiddenWidgets.add(w.widget);
+        if (w.hidden) hiddenWidgetsList.push(w.widget);
       }
       const isAdmin = roles.includes("admin");
       const isEditor = roles.includes("editor");
@@ -90,23 +90,42 @@ export function useCurrentUserAccess() {
         perms,
         isAdmin,
         isEditor,
-        hiddenWidgets,
-        canSeeWidget: (w: DashboardWidget) => isAdmin || !hiddenWidgets.has(w),
-        canEdit: (tab: TabName) => isAdmin || isEditor || !!perms[tab],
-        canView: (tab: TabName) => {
-          if (isAdmin || isEditor) return true;
-          if (tab === "dashboard") return true;
-          return perms[tab] !== undefined;
-        },
+        hiddenWidgetsList,
       };
     },
   });
+
+  const accessData = query.data;
+
+  // Reconstruir campos e funções não serializáveis no corpo do hook
+  const perms = accessData?.perms ?? {};
+  const isAdmin = accessData?.isAdmin ?? false;
+  const isEditor = accessData?.isEditor ?? false;
+  const hiddenWidgetsList = accessData?.hiddenWidgetsList ?? [];
+  const hiddenWidgetsSet = new Set<DashboardWidget>(hiddenWidgetsList);
+
+  const canSeeWidget = (w: DashboardWidget) => isAdmin || !hiddenWidgetsSet.has(w);
+  const canEdit = (tab: TabName) => isAdmin || isEditor || !!perms[tab];
+  const canView = (tab: TabName) => {
+    if (isAdmin || isEditor) return true;
+    if (tab === "dashboard") return true;
+    return perms[tab] !== undefined;
+  };
+
+  const access = accessData
+    ? {
+        ...accessData,
+        canSeeWidget,
+        canEdit,
+        canView,
+      }
+    : undefined;
 
   return {
     userId,
     email,
     loading: query.isLoading,
-    access: query.data,
+    access,
     refetch: query.refetch,
   };
 }
