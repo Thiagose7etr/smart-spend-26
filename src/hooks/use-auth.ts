@@ -23,10 +23,11 @@ export const DASHBOARD_WIDGETS: { key: DashboardWidget; label: string }[] = [
 export type SessionState = {
   userId: string | null;
   email: string | null;
+  loading: boolean;
 };
 
 // Cache global da sessão para evitar lag/flashing nas transições de rotas
-let cachedSession: SessionState = { userId: null, email: null };
+let cachedSession: SessionState = { userId: null, email: null, loading: true };
 
 export function useSession() {
   const [state, setState] = useState<SessionState>(cachedSession);
@@ -39,24 +40,24 @@ export function useSession() {
       if (!active) return;
       if (error) {
         await clearInvalidAuthSession();
-        const newState = { userId: null, email: null };
+        const newState = { userId: null, email: null, loading: false };
         cachedSession = newState;
         if (active) setState(newState);
         return;
       }
-      const newState = { userId: data.user?.id ?? null, email: data.user?.email ?? null };
+      const newState = { userId: data.user?.id ?? null, email: data.user?.email ?? null, loading: false };
       cachedSession = newState;
       if (active) setState(newState);
     };
 
     // Só busca as informações se não estiverem no cache
-    if (!cachedSession.userId) {
+    if (cachedSession.loading) {
       setVerifiedUser();
     }
 
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       if (!session) {
-        const newState = { userId: null, email: null };
+        const newState = { userId: null, email: null, loading: false };
         cachedSession = newState;
         setState(newState);
         return;
@@ -80,7 +81,7 @@ export function useSession() {
 }
 
 export function useCurrentUserAccess() {
-  const { userId, email } = useSession();
+  const { userId, email, loading: sessionLoading } = useSession();
 
   const query = useQuery({
     enabled: !!userId,
@@ -146,7 +147,7 @@ export function useCurrentUserAccess() {
   return {
     userId,
     email,
-    loading: query.isLoading,
+    loading: sessionLoading || query.isLoading,
     access,
     refetch: query.refetch,
   };

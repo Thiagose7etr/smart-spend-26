@@ -5,12 +5,12 @@ import { clearInvalidAuthSession } from "@/lib/auth-session";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session) {
       if (error) await clearInvalidAuthSession();
       throw redirect({ to: "/auth" });
     }
-    return { user: data.user };
+    return { user: session.user };
   },
   component: () => <Outlet />,
 });
