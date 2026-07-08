@@ -325,8 +325,9 @@ function DashboardPage() {
                     background: "var(--popover)",
                     border: "1px solid var(--border)",
                     borderRadius: 8,
-                    color: "var(--foreground)",
                   }}
+                  itemStyle={{ color: "var(--popover-foreground)" }}
+                  labelStyle={{ color: "var(--popover-foreground)" }}
                   formatter={(v: number) => fmtBRL(v)}
                 />
                 <Bar dataKey="Meta" fill="var(--accent)" radius={[4, 4, 0, 0]} />
@@ -364,6 +365,8 @@ function DashboardPage() {
                     border: "1px solid var(--border)",
                     borderRadius: 8,
                   }}
+                  itemStyle={{ color: "var(--popover-foreground)" }}
+                  labelStyle={{ color: "var(--popover-foreground)" }}
                   formatter={(v: number) => fmtBRL(v)}
                 />
                 <Legend
@@ -409,6 +412,8 @@ function DashboardPage() {
                     border: "1px solid var(--border)",
                     borderRadius: 8,
                   }}
+                  itemStyle={{ color: "var(--popover-foreground)" }}
+                  labelStyle={{ color: "var(--popover-foreground)" }}
                   formatter={(v: number) => fmtBRL(v)}
                 />
                 <Line type="monotone" dataKey="Gasto" stroke="url(#glow)" strokeWidth={3} dot={{ r: 4, fill: "var(--primary)" }} />

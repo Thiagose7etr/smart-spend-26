@@ -247,7 +247,7 @@ function CombustivelPage() {
 
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         <StatCard label="Estoque S10" value={`${fmtNum(stats.s10Estoque)} L`} icon={Fuel} tone="primary" />
-        <StatCard label="Estoque S500" value={`${fmtNum(stats.s500Estoque)} L`} icon={Droplet} tone="accent" />
+        <StatCard label="Estoque S500" value={`${fmtNum(stats.s500Estoque)} L`} icon={Fuel} tone="accent" />
         <StatCard label="Saídas S10" value={`${fmtNum(stats.s10Sai)} L`} icon={ArrowDownRight} tone="muted" />
         <StatCard label="Saídas S500" value={`${fmtNum(stats.s500Sai)} L`} icon={ArrowDownRight} tone="muted" />
       </div>
@@ -262,10 +262,10 @@ function CombustivelPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Droplet className="h-4 w-4 text-accent" /> Projeção Diesel S500</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Fuel className="h-4 w-4 text-accent" /> Projeção Diesel S500</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-3 gap-4">
             <Metric label="Média diária" value={`${fmtNum(stats.s500Media, 1)} L`} icon={TrendingDown} />
-            <Metric label="Estoque atual" value={`${fmtNum(stats.s500Estoque)} L`} icon={Droplet} />
+            <Metric label="Estoque atual" value={`${fmtNum(stats.s500Estoque)} L`} icon={Fuel} />
             <Metric label="Dura por" value={stats.s500Media > 0 ? `${fmtNum(stats.s500Dias, 1)} dias` : "—"} icon={CalendarClock} highlight />
           </CardContent>
         </Card>
