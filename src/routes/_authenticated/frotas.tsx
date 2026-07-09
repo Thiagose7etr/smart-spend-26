@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Truck, Search, ShieldAlert } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, Search, ShieldAlert, Wrench, CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { sbFrom, type Frota } from "@/lib/db-types";
@@ -112,6 +112,20 @@ function FrotasPage() {
       qc.invalidateQueries({ queryKey: ["frotas"] });
       toast.success("Removida");
     },
+  });
+
+  const alternarStatus = useMutation({
+    mutationFn: async (f: Frota) => {
+      const novo = f.status === "manutencao" ? "liberado" : "manutencao";
+      const { error } = await sbFrom("frotas").update({ status: novo }).eq("id", f.id);
+      if (error) throw error;
+      return novo;
+    },
+    onSuccess: (novo) => {
+      qc.invalidateQueries({ queryKey: ["frotas"] });
+      toast.success(novo === "manutencao" ? "Marcada em manutenção" : "Frota liberada");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (accessLoading) {
@@ -215,20 +229,33 @@ function FrotasPage() {
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {filtradas.map((f) => (
-          <Card key={f.id} className="group hover:border-primary/40 transition-colors">
+          <Card key={f.id} className={`group transition-colors ${f.status === "manutencao" ? "border-destructive/50 hover:border-destructive" : "hover:border-primary/40"}`}>
             <CardContent className="pt-5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <div className={`grid h-11 w-11 place-items-center rounded-lg ${f.status === "manutencao" ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
                     <Truck className="h-5 w-5" />
                   </div>
                   <div>
                     <div className="text-xs uppercase tracking-wider text-muted-foreground">Frota</div>
                     <div className="text-lg font-bold tabular-nums">{f.codigo}</div>
+                    <div className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${f.status === "manutencao" ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
+                      {f.status === "manutencao" ? <><Wrench className="h-3 w-3" /> Manutenção</> : <><CheckCircle2 className="h-3 w-3" /> Liberada</>}
+                    </div>
                   </div>
                 </div>
                 {canEdit && (
                   <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={`h-8 w-8 ${f.status === "manutencao" ? "text-primary" : "text-destructive"}`}
+                      title={f.status === "manutencao" ? "Liberar frota" : "Marcar em manutenção"}
+                      onClick={() => alternarStatus.mutate(f)}
+                      disabled={alternarStatus.isPending}
+                    >
+                      {f.status === "manutencao" ? <CheckCircle2 className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(f); setDialogOpen(true); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
