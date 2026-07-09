@@ -228,7 +228,7 @@ function FrotasPage() {
                   </div>
                 </div>
                 {canEdit && (
-                  <div className="opacity-0 group-hover:opacity-100 transition flex gap-1">
+                  <div className="flex gap-1">
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(f); setDialogOpen(true); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
