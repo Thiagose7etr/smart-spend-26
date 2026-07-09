@@ -1,0 +1,1 @@
+ALTER TABLE public.frotas ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'liberado' CHECK (status IN ('liberado','manutencao'));

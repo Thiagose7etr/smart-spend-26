@@ -134,6 +134,7 @@ export type Database = {
           marca: string | null
           modelo: string | null
           placa: string | null
+          status: string
           tipo: string | null
           updated_at: string
         }
@@ -145,6 +146,7 @@ export type Database = {
           marca?: string | null
           modelo?: string | null
           placa?: string | null
+          status?: string
           tipo?: string | null
           updated_at?: string
         }
@@ -156,6 +158,7 @@ export type Database = {
           marca?: string | null
           modelo?: string | null
           placa?: string | null
+          status?: string
           tipo?: string | null
           updated_at?: string
         }
