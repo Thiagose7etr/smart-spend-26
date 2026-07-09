@@ -280,7 +280,7 @@ function GuinchoPage() {
                   </div>
                 )}
                 {canEdit && (
-                  <div className="mt-4 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <div className="mt-4 flex justify-end gap-1">
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(g); setOpen(true); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
