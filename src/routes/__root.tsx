@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "sonner";
-import thcLogo from "../assets/thc-logo.jpg.asset.json";
+import thcLogo from "../assets/thc-logo.jpg";
 
 function NotFoundComponent() {
   return (
@@ -112,8 +112,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: thcLogo.url, type: "image/jpeg" },
-      { rel: "apple-touch-icon", href: thcLogo.url },
+      { rel: "icon", href: thcLogo, type: "image/jpeg" },
+      { rel: "apple-touch-icon", href: thcLogo },
     ],
   }),
   shellComponent: RootShell,
