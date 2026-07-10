@@ -20,22 +20,22 @@ CREATE TABLE IF NOT EXISTS public.requisicao_itens (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Habilitar RLS
+-- Habilitar RLS (Segurança)
 ALTER TABLE public.requisicoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.requisicao_itens ENABLE ROW LEVEL SECURITY;
 
--- Conceder permissões
+-- Conceder permissões de acesso
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.requisicoes TO authenticated;
 GRANT ALL ON public.requisicoes TO service_role;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.requisicao_itens TO authenticated;
 GRANT ALL ON public.requisicao_itens TO service_role;
 
--- Triggers de updated_at
+-- Triggers para atualização automática de timestamps
 CREATE TRIGGER trg_requisicoes_updated BEFORE UPDATE ON public.requisicoes FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_requisicao_itens_updated BEFORE UPDATE ON public.requisicao_itens FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
--- Políticas RLS
+-- Políticas RLS de Segurança
 CREATE POLICY "requisicoes select" ON public.requisicoes FOR SELECT TO authenticated USING (public.is_active(auth.uid()));
 CREATE POLICY "requisicoes insert" ON public.requisicoes FOR INSERT TO authenticated WITH CHECK (public.can_edit_tab(auth.uid(),'requisicoes'));
 CREATE POLICY "requisicoes update" ON public.requisicoes FOR UPDATE TO authenticated USING (public.can_edit_tab(auth.uid(),'requisicoes')) WITH CHECK (public.can_edit_tab(auth.uid(),'requisicoes'));
