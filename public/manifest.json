@@ -1,0 +1,23 @@
+{
+  "short_name": "THcontrol",
+  "name": "THcontrol - Fleet & Purchases",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0d0e12",
+  "theme_color": "#059669",
+  "display": "standalone",
+  "orientation": "portrait"
+}

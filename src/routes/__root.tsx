@@ -114,6 +114,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: thcLogo + "?v=2", type: "image/jpeg" },
       { rel: "apple-touch-icon", href: thcLogo + "?v=2" },
+      { rel: "manifest", href: "/manifest.json" },
     ],
   }),
   shellComponent: RootShell,
