@@ -49,12 +49,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
+    if (!oldPassword) {
+      toast.error("Por favor, digite sua senha antiga.");
+      return;
+    }
     if (!newPassword || newPassword.length < 6) {
       toast.error("A senha deve ter no mínimo 6 caracteres.");
       return;
@@ -65,10 +70,25 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     setChangingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+      const { error: loginErr } = await supabase.auth.signInWithPassword({
+        email: email || "",
+        password: oldPassword,
+      });
+      if (loginErr) {
+        throw new Error("Senha antiga incorreta. Verifique os dados digitados.");
+      }
+
+      const { error: authErr } = await supabase.auth.updateUser({ password: newPassword });
+      if (authErr) throw authErr;
+
+      if (access?.profile?.id) {
+        const { error: dbErr } = await supabase.from("profiles").update({ senha: newPassword }).eq("id", access.profile.id);
+        if (dbErr) console.warn("Aviso: Não foi possível salvar no perfil:", dbErr.message);
+      }
+
       toast.success("Sua senha foi alterada com sucesso!");
       setPasswordDialogOpen(false);
+      setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
@@ -273,6 +293,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="old-password">Senha Antiga</Label>
+              <Input
+                id="old-password"
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                placeholder="Sua senha atual"
+                required
+              />
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="new-password">Nova Senha</Label>
               <Input

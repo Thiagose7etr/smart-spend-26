@@ -133,9 +133,14 @@ export const resetUserPasswordAdmin = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Apenas administradores podem redefinir senhas.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+    
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.newPassword,
     });
-    if (error) throw new Error(error.message);
+    if (authErr) throw new Error(authErr.message);
+
+    const { error: dbErr } = await supabaseAdmin.from("profiles").update({ senha: data.newPassword }).eq("id", data.userId);
+    if (dbErr) throw new Error(dbErr.message);
+
     return { ok: true };
   });

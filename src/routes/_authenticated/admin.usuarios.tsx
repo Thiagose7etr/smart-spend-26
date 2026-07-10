@@ -389,13 +389,40 @@ function AdminUsersPage() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="text-sm">
-              Definir nova senha para: <span className="font-semibold text-primary">{resetPassEmail}</span>
+              Usuário: <span className="font-semibold text-primary">{resetPassEmail}</span>
             </div>
+            
+            {/* Mostrar a senha atual do sistema se disponível */}
+            <div className="bg-muted/40 p-2.5 rounded-lg border border-border/50 text-xs">
+              <span className="font-semibold text-muted-foreground block mb-0.5 uppercase tracking-wider text-[9px]">
+                Senha Atual no Sistema:
+              </span>
+              <code className="text-foreground font-mono text-sm select-all">
+                {users.data?.find((u) => u.id === resetPassUserId)?.senha || "Não registrada ou alterada externamente"}
+              </code>
+            </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="admin-new-password">Nova Senha</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="admin-new-password">Nova Senha</Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@";
+                    let pass = "";
+                    for (let i = 0; i < 8; i++) {
+                      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    setResetPassNewPassword(pass);
+                  }}
+                  className="text-xs text-primary hover:underline cursor-pointer"
+                >
+                  Gerar senha aleatória
+                </button>
+              </div>
               <Input
                 id="admin-new-password"
-                type="password"
+                type="text"
                 value={resetPassNewPassword}
                 onChange={(e) => setResetPassNewPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
