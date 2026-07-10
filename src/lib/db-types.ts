@@ -34,6 +34,7 @@ export type Frota = {
   marca: string | null;
   chassi: string | null;
   status?: "liberado" | "manutencao";
+  defeito?: string | null;
 };
 
 export type RequisicaoItem = {

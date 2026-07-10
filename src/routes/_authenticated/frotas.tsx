@@ -57,6 +57,7 @@ const emptyForm = (): Partial<Frota> => ({
   marca: "",
   chassi: "",
   status: "liberado",
+  defeito: "",
 });
 
 function FrotasPage() {
@@ -104,6 +105,7 @@ function FrotasPage() {
         marca: f.marca || null,
         chassi: f.chassi || null,
         status: f.status || "liberado",
+        defeito: f.status === "manutencao" ? f.defeito || null : null,
       };
       if (f.id) {
         const { error } = await sbFrom("frotas").update(payload).eq("id", f.id);
@@ -136,11 +138,18 @@ function FrotasPage() {
   const alternarStatus = useMutation({
     mutationFn: async (f: Frota) => {
       const novo = f.status === "manutencao" ? "liberado" : "manutencao";
-      const { error } = await sbFrom("frotas").update({ status: novo }).eq("id", f.id);
+      let defeito = null;
+      if (novo === "manutencao") {
+        const input = prompt("Digite o defeito / motivo da manutenção (opcional):");
+        if (input === null) return null; // Cancelado
+        defeito = input.trim() || null;
+      }
+      const { error } = await sbFrom("frotas").update({ status: novo, defeito }).eq("id", f.id);
       if (error) throw error;
       return novo;
     },
     onSuccess: (novo) => {
+      if (novo === null) return;
       qc.invalidateQueries({ queryKey: ["frotas"] });
       toast.success(novo === "manutencao" ? "Marcada em manutenção" : "Frota liberada");
     },
@@ -238,6 +247,12 @@ function FrotasPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                {form.status === "manutencao" && (
+                  <div className="col-span-2">
+                    <Label className="text-xs">Defeito / Motivo da Manutenção</Label>
+                    <Input value={form.defeito ?? ""} onChange={(e) => setForm({ ...form, defeito: e.target.value })} placeholder="Descreva o motivo pelo qual o veículo está parado..." />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending || !form.codigo} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
@@ -350,6 +365,12 @@ function FrotasPage() {
                 <Row label="Marca" value={f.marca} />
                 <Row label="Chassi" value={f.chassi} mono small />
               </div>
+              {f.status === "manutencao" && f.defeito && (
+                <div className="mt-3 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20 font-medium">
+                  <span className="font-semibold block text-[9px] uppercase tracking-wider mb-0.5 opacity-80">Motivo da Parada:</span>
+                  {f.defeito}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

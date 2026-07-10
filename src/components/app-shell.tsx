@@ -150,7 +150,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 inset-x-0 z-20 flex items-center justify-between border-b border-border bg-sidebar px-4 py-3">
         <div className="flex items-center gap-2">
-          <img src={thcLogo.url} alt="THcontrol" className="h-8 w-8 rounded-lg object-cover" />
+          <img src={thcLogo} alt="THcontrol" className="h-8 w-8 rounded-lg object-cover" />
           <span className="font-semibold text-sm">THcontrol</span>
           {displayName && (
             <span className="text-xs text-primary font-medium truncate max-w-[110px]">
