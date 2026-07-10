@@ -11,15 +11,21 @@ import {
   Sun,
   Moon,
   ClipboardList,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import thcLogo from "@/assets/thc-logo.jpg";
 import { useCurrentUserAccess, type TabName } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTheme } from "@/hooks/use-theme";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const NAV: { to: string; label: string; icon: typeof LayoutDashboard; tab: TabName }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, tab: "dashboard" },
@@ -41,6 +47,36 @@ export function AppShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Sua senha foi alterada com sucesso!");
+      setPasswordDialogOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao alterar senha");
+    } finally {
+      setChangingPassword(false);
+    }
+  }
 
   const nav = NAV.filter((n) => (access ? access.canView(n.tab) : true));
 
@@ -130,13 +166,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="mt-2 flex items-center justify-between">
                 <button
                   onClick={signOut}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <LogOut className="h-3 w-3" /> Sair
                 </button>
                 <button
+                  onClick={() => setPasswordDialogOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <KeyRound className="h-3 w-3" /> Senha
+                </button>
+                <button
                   onClick={toggleTheme}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-sidebar-border text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-sidebar-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title={theme === "dark" ? "Modo Claro" : "Modo Escuro"}
                 >
                   {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
@@ -180,6 +222,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
           <button
+            onClick={() => setPasswordDialogOpen(true)}
+            className="text-xs text-muted-foreground inline-flex items-center gap-1 ml-1 cursor-pointer"
+          >
+            <KeyRound className="h-3.5 w-3.5" /> Senha
+          </button>
+          <button
             onClick={signOut}
             className="text-xs text-muted-foreground inline-flex items-center gap-1 ml-1"
           >
@@ -215,8 +263,49 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="md:hidden h-14" />
       </main>
+
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" /> Alterar minha senha
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-password">Nova Senha</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Digite a senha novamente"
+                required
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)} disabled={changingPassword}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={changingPassword}>
+                {changingPassword ? "Alterando..." : "Salvar Senha"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

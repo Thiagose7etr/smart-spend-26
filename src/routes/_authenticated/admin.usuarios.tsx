@@ -31,8 +31,8 @@ import {
   type TabName,
   type DashboardWidget,
 } from "@/hooks/use-auth";
-import { deleteUserAccount, runMigrationSQL } from "@/lib/admin.functions";
-import { Shield, Trash2, Settings2, Users, LayoutDashboard } from "lucide-react";
+import { deleteUserAccount, runMigrationSQL, resetUserPasswordAdmin } from "@/lib/admin.functions";
+import { Shield, Trash2, Settings2, Users, LayoutDashboard, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({
@@ -61,7 +61,27 @@ function AdminUsersPage() {
   const { access, loading } = useCurrentUserAccess();
   const qc = useQueryClient();
   const deleteFn = useServerFn(deleteUserAccount);
+  const resetPassFn = useServerFn(resetUserPasswordAdmin);
   const [permsUserId, setPermsUserId] = useState<string | null>(null);
+  
+  const [resetPassUserId, setResetPassUserId] = useState<string | null>(null);
+  const [resetPassEmail, setResetPassEmail] = useState("");
+  const [resetPassNewPassword, setResetPassNewPassword] = useState("");
+
+  const resetPassword = useMutation({
+    mutationFn: async () => {
+      if (!resetPassUserId || !resetPassNewPassword || resetPassNewPassword.length < 6) {
+        throw new Error("A senha deve ter no mínimo 6 caracteres.");
+      }
+      await resetPassFn({ data: { userId: resetPassUserId, newPassword: resetPassNewPassword } });
+    },
+    onSuccess: () => {
+      toast.success(`Senha de ${resetPassEmail} atualizada!`);
+      setResetPassUserId(null);
+      setResetPassNewPassword("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   useEffect(() => {
     if (!loading && access && !access.isAdmin) {
@@ -324,6 +344,18 @@ function AdminUsersPage() {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => {
+                              setResetPassUserId(u.id);
+                              setResetPassEmail(u.email);
+                              setResetPassNewPassword("");
+                            }}
+                            title="Redefinir Senha"
+                          >
+                            Senha
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             className="text-destructive hover:text-destructive"
                             onClick={() => {
                               if (confirm(`Excluir ${u.email}? Esta ação é irreversível.`))
@@ -347,6 +379,39 @@ function AdminUsersPage() {
         userId={permsUserId}
         onClose={() => setPermsUserId(null)}
       />
+
+      <Dialog open={!!resetPassUserId} onOpenChange={(v) => !v && setResetPassUserId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" /> Redefinir senha do usuário
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="text-sm">
+              Definir nova senha para: <span className="font-semibold text-primary">{resetPassEmail}</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="admin-new-password">Nova Senha</Label>
+              <Input
+                id="admin-new-password"
+                type="password"
+                value={resetPassNewPassword}
+                onChange={(e) => setResetPassNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={() => setResetPassUserId(null)} disabled={resetPassword.isPending}>
+                Cancelar
+              </Button>
+              <Button onClick={() => resetPassword.mutate()} disabled={resetPassword.isPending || resetPassNewPassword.length < 6}>
+                {resetPassword.isPending ? "Definindo..." : "Salvar Senha"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
