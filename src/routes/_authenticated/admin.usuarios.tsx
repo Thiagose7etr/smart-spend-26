@@ -31,7 +31,7 @@ import {
   type TabName,
   type DashboardWidget,
 } from "@/hooks/use-auth";
-import { deleteUserAccount } from "@/lib/admin.functions";
+import { deleteUserAccount, runMigrationSQL } from "@/lib/admin.functions";
 import { Shield, Trash2, Settings2, Users, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 
@@ -149,6 +149,18 @@ function AdminUsersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const runMigration = useMutation({
+    mutationFn: async () => {
+      await runMigrationSQL();
+    },
+    onSuccess: () => {
+      toast.success("Tabelas de Requisições configuradas com sucesso no Supabase!");
+    },
+    onError: (e: Error) => {
+      toast.error(`Erro ao configurar tabelas: ${e.message}`);
+    },
+  });
+
   if (loading || !access?.isAdmin) {
     return (
       <AppShell>
@@ -173,7 +185,16 @@ function AdminUsersPage() {
               Aprove cadastros, defina papéis e libere permissões por aba.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap items-center">
+            <Button
+              onClick={() => runMigration.mutate()}
+              disabled={runMigration.isPending}
+              variant="outline"
+              size="sm"
+              className="text-xs border-primary/40 hover:bg-primary/10 text-primary cursor-pointer h-7"
+            >
+              {runMigration.isPending ? "Configurando..." : "Configurar Tabelas de Requisições"}
+            </Button>
             <Badge variant="outline">Total: {total}</Badge>
             <Badge className="bg-primary/20 text-primary border-primary/30">Ativos: {ativos}</Badge>
             <Badge variant="outline" className="border-amber-500/40 text-amber-400">
