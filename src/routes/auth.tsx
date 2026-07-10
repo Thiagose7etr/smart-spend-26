@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, LogIn, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import thcLogo from "@/assets/thc-logo.jpg.asset.json";
+import thcLogo from "@/assets/thc-logo.jpg";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -86,7 +86,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6">
           <img
-            src={thcLogo.url}
+            src={thcLogo}
             alt="THcontrol"
             className="h-16 w-16 rounded-2xl object-cover mb-3"
             style={{ boxShadow: "var(--shadow-glow)" }}

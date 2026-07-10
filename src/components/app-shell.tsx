@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
-import thcLogo from "@/assets/thc-logo.jpg.asset.json";
+import thcLogo from "@/assets/thc-logo.jpg";
 import { useCurrentUserAccess, type TabName } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -57,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-sidebar">
         <div className="flex items-center gap-3 px-6 py-6 border-b border-sidebar-border">
           <img
-            src={thcLogo.url}
+            src={thcLogo}
             alt="THcontrol"
             className="h-10 w-10 rounded-xl object-cover"
             style={{ boxShadow: "var(--shadow-glow)" }}
