@@ -1,6 +1,3 @@
--- Alterar tabela frotas para adicionar status
-ALTER TABLE public.frotas ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'liberado' CHECK (status IN ('liberado', 'manutencao'));
-
 -- Criar tabela de requisições
 CREATE TABLE IF NOT EXISTS public.requisicoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
