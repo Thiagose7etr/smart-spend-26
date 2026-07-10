@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedRequisicoesRouteImport } from './routes/_authenticated/requisicoes'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 import { Route as AuthenticatedGuinchoRouteImport } from './routes/_authenticated/guincho'
 import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated/frotas'
@@ -33,6 +34,12 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRequisicoesRoute =
+  AuthenticatedRequisicoesRouteImport.update({
+    id: '/requisicoes',
+    path: '/requisicoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
   id: '/metas',
   path: '/metas',
@@ -74,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
   '/metas': typeof AuthenticatedMetasRoute
+  '/requisicoes': typeof AuthenticatedRequisicoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
 export interface FileRoutesByTo {
@@ -83,6 +91,7 @@ export interface FileRoutesByTo {
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
   '/metas': typeof AuthenticatedMetasRoute
+  '/requisicoes': typeof AuthenticatedRequisicoesRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
@@ -95,6 +104,7 @@ export interface FileRoutesById {
   '/_authenticated/frotas': typeof AuthenticatedFrotasRoute
   '/_authenticated/guincho': typeof AuthenticatedGuinchoRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
+  '/_authenticated/requisicoes': typeof AuthenticatedRequisicoesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/frotas'
     | '/guincho'
     | '/metas'
+    | '/requisicoes'
     | '/admin/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/frotas'
     | '/guincho'
     | '/metas'
+    | '/requisicoes'
     | '/'
     | '/admin/usuarios'
   id:
@@ -128,6 +140,7 @@ export interface FileRouteTypes {
     | '/_authenticated/frotas'
     | '/_authenticated/guincho'
     | '/_authenticated/metas'
+    | '/_authenticated/requisicoes'
     | '/_authenticated/'
     | '/_authenticated/admin/usuarios'
   fileRoutesById: FileRoutesById
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/requisicoes': {
+      id: '/_authenticated/requisicoes'
+      path: '/requisicoes'
+      fullPath: '/requisicoes'
+      preLoaderRoute: typeof AuthenticatedRequisicoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/metas': {
@@ -211,6 +231,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFrotasRoute: typeof AuthenticatedFrotasRoute
   AuthenticatedGuinchoRoute: typeof AuthenticatedGuinchoRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
+  AuthenticatedRequisicoesRoute: typeof AuthenticatedRequisicoesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
 }
@@ -221,6 +242,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFrotasRoute: AuthenticatedFrotasRoute,
   AuthenticatedGuinchoRoute: AuthenticatedGuinchoRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
+  AuthenticatedRequisicoesRoute: AuthenticatedRequisicoesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
 }
@@ -235,3 +257,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

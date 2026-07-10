@@ -8,6 +8,9 @@ import {
   Wrench,
   Shield,
   LogOut,
+  Sun,
+  Moon,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -16,6 +19,7 @@ import { useCurrentUserAccess, type TabName } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useTheme } from "@/hooks/use-theme";
 
 const NAV: { to: string; label: string; icon: typeof LayoutDashboard; tab: TabName }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, tab: "dashboard" },
@@ -24,6 +28,7 @@ const NAV: { to: string; label: string; icon: typeof LayoutDashboard; tab: TabNa
   { to: "/frotas", label: "Frotas", icon: Truck, tab: "frotas" },
   { to: "/combustivel", label: "Combustível", icon: Fuel, tab: "combustivel" },
   { to: "/guincho", label: "Guincho", icon: Wrench, tab: "guincho" },
+  { to: "/requisicoes", label: "Requisição", icon: ClipboardList, tab: "requisicoes" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -35,6 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     "";
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const nav = NAV.filter((n) => (access ? access.canView(n.tab) : true));
 
@@ -121,12 +127,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {access.isAdmin ? "Admin" : access.isEditor ? "Editor" : "Viewer"}
                 </div>
               )}
-              <button
-                onClick={signOut}
-                className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <LogOut className="h-3 w-3" /> Sair
-              </button>
+              <div className="mt-2 flex items-center justify-between">
+                <button
+                  onClick={signOut}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-3 w-3" /> Sair
+                </button>
+                <button
+                  onClick={toggleTheme}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-sidebar-border text-muted-foreground hover:text-foreground transition-colors"
+                  title={theme === "dark" ? "Modo Claro" : "Modo Escuro"}
+                >
+                  {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -158,8 +173,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           )}
           <button
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-foreground p-1 transition-colors inline-flex items-center"
+            title={theme === "dark" ? "Modo Claro" : "Modo Escuro"}
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+          <button
             onClick={signOut}
-            className="text-xs text-muted-foreground inline-flex items-center gap-1"
+            className="text-xs text-muted-foreground inline-flex items-center gap-1 ml-1"
           >
             <LogOut className="h-3.5 w-3.5" /> Sair
           </button>

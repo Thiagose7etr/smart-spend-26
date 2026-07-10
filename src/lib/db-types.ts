@@ -36,6 +36,28 @@ export type Frota = {
   status?: "liberado" | "manutencao";
 };
 
+export type RequisicaoItem = {
+  id: string;
+  requisicao_id: string;
+  descricao: string;
+  quantidade: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Requisicao = {
+  id: string;
+  numero: number;
+  centro_custo: string;
+  data: string;
+  solicitante: string;
+  status: "pendente" | "comprado" | "entregue";
+  created_at?: string;
+  updated_at?: string;
+  itens?: RequisicaoItem[];
+};
+
+
 export type Combustivel = {
   id: string;
   data: string;

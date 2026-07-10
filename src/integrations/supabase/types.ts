@@ -137,6 +137,7 @@ export type Database = {
           status: string
           tipo: string | null
           updated_at: string
+          status: string | null
         }
         Insert: {
           chassi?: string | null
@@ -149,6 +150,7 @@ export type Database = {
           status?: string
           tipo?: string | null
           updated_at?: string
+          status?: string | null
         }
         Update: {
           chassi?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           status?: string
           tipo?: string | null
           updated_at?: string
+          status?: string | null
         }
         Relationships: []
       }
@@ -337,6 +340,73 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      requisicoes: {
+        Row: {
+          id: string
+          numero: number
+          centro_custo: string
+          data: string
+          solicitante: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          numero?: number
+          centro_custo: string
+          data?: string
+          solicitante: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          numero?: number
+          centro_custo?: string
+          data?: string
+          solicitante?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      requisicao_itens: {
+        Row: {
+          id: string
+          requisicao_id: string
+          descricao: string
+          quantidade: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          requisicao_id: string
+          descricao: string
+          quantidade?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          requisicao_id?: string
+          descricao?: string
+          quantidade?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisicao_itens_requisicao_id_fkey"
+            columns: ["requisicao_id"]
+            referencedRelation: "requisicoes"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {

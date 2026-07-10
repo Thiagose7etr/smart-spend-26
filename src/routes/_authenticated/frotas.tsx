@@ -24,6 +24,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Plus, Pencil, Trash2, Truck, Search, ShieldAlert, Wrench, CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -47,6 +56,7 @@ const emptyForm = (): Partial<Frota> => ({
   modelo: "",
   marca: "",
   chassi: "",
+  status: "liberado",
 });
 
 function FrotasPage() {
@@ -55,6 +65,7 @@ function FrotasPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<Partial<Frota>>(emptyForm());
   const [busca, setBusca] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState<string>("todos");
 
   const { data: frotas = [] } = useQuery({
     queryKey: ["frotas"],
@@ -67,14 +78,21 @@ function FrotasPage() {
 
   const filtradas = useMemo(() => {
     const b = busca.toLowerCase();
-    return frotas.filter((f) =>
-      !b ||
-      (f.codigo || "").toLowerCase().includes(b) ||
-      (f.placa || "").toLowerCase().includes(b) ||
-      (f.marca || "").toLowerCase().includes(b) ||
-      (f.tipo || "").toLowerCase().includes(b),
-    );
-  }, [frotas, busca]);
+    return frotas.filter((f) => {
+      const matchBusca = !b ||
+        (f.codigo || "").toLowerCase().includes(b) ||
+        (f.placa || "").toLowerCase().includes(b) ||
+        (f.marca || "").toLowerCase().includes(b) ||
+        (f.tipo || "").toLowerCase().includes(b);
+
+      const matchStatus =
+        statusFiltro === "todos" ||
+        (statusFiltro === "liberado" && (f.status === "liberado" || !f.status)) ||
+        (statusFiltro === "manutencao" && f.status === "manutencao");
+
+      return matchBusca && matchStatus;
+    });
+  }, [frotas, busca, statusFiltro]);
 
   const salvar = useMutation({
     mutationFn: async (f: Partial<Frota>) => {
@@ -85,6 +103,7 @@ function FrotasPage() {
         modelo: f.modelo || null,
         marca: f.marca || null,
         chassi: f.chassi || null,
+        status: f.status || "liberado",
       };
       if (f.id) {
         const { error } = await sbFrom("frotas").update(payload).eq("id", f.id);
@@ -207,6 +226,18 @@ function FrotasPage() {
                   <Label className="text-xs">Chassi</Label>
                   <Input value={form.chassi ?? ""} onChange={(e) => setForm({ ...form, chassi: e.target.value })} />
                 </div>
+                <div>
+                  <Label className="text-xs">Situação</Label>
+                  <Select value={form.status || "liberado"} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="liberado">Liberado</SelectItem>
+                      <SelectItem value="manutencao">Em Manutenção</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button onClick={() => salvar.mutate(form)} disabled={salvar.isPending || !form.codigo} className="text-primary-foreground border-0" style={{ background: "var(--gradient-primary)" }}>
@@ -219,10 +250,45 @@ function FrotasPage() {
       </div>
 
       <Card className="mb-4">
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por código, placa, marca ou tipo…" className="pl-9" />
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs pt-1 border-t border-border/40">
+            <button
+              onClick={() => setStatusFiltro("todos")}
+              className={cn(
+                "px-3 py-1.5 rounded-full font-medium transition-colors border cursor-pointer select-none",
+                statusFiltro === "todos"
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              Todos ({frotas.length})
+            </button>
+            <button
+              onClick={() => setStatusFiltro("liberado")}
+              className={cn(
+                "px-3 py-1.5 rounded-full font-medium transition-colors border cursor-pointer select-none",
+                statusFiltro === "liberado"
+                  ? "bg-emerald-600 border-emerald-600 text-white"
+                  : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              Liberados ({frotas.filter(f => f.status === "liberado" || !f.status).length})
+            </button>
+            <button
+              onClick={() => setStatusFiltro("manutencao")}
+              className={cn(
+                "px-3 py-1.5 rounded-full font-medium transition-colors border cursor-pointer select-none",
+                statusFiltro === "manutencao"
+                  ? "bg-rose-600 border-rose-600 text-white"
+                  : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              Em Manutenção ({frotas.filter(f => f.status === "manutencao").length})
+            </button>
           </div>
         </CardContent>
       </Card>
