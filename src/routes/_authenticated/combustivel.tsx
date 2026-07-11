@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2, TrendingDown, CalendarClock, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { fmtNum, fmtBRL, sbFrom, formatLocalDateString, MESES, type Combustivel, type Compra } from "@/lib/db-types";
+import { fmtNum, sbFrom, formatLocalDateString, MESES, type Combustivel } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/combustivel")({
@@ -80,43 +80,7 @@ function CombustivelPage() {
     },
   });
 
-  const { data: compras = [] } = useQuery({
-    queryKey: ["compras-combustivel"],
-    queryFn: async () => {
-      const { data, error } = await sbFrom("compras").select("*").eq("tipo", "COMBUSTIVEL");
-      if (error) throw error;
-      return (data ?? []) as unknown as Compra[];
-    },
-  });
 
-  const comprasFiltradas = useMemo(() => {
-    return compras.filter((c) => {
-      if (!c.data_emissao) return false;
-      const parts = c.data_emissao.split("-");
-      if (parts.length !== 3) return false;
-      const ano = parts[0];
-      const mesIndex = parseInt(parts[1], 10) - 1;
-      const mesNome = MESES[mesIndex];
-
-      if (filtroMes !== "todos" && mesNome !== filtroMes) return false;
-      if (filtroAno !== "todos" && ano !== filtroAno) return false;
-      if (filtroTipo !== "todos") {
-        const term = filtroTipo.toLowerCase();
-        const itemLower = (c.item || "").toLowerCase();
-        const fornLower = (c.fornecedor || "").toLowerCase();
-        if (!itemLower.includes(term) && !fornLower.includes(term)) return false;
-      }
-      return true;
-    });
-  }, [compras, filtroMes, filtroAno, filtroTipo]);
-
-  const totalGasto = useMemo(() => {
-    return comprasFiltradas.reduce((s, c) => s + Number(c.valor_total || 0), 0);
-  }, [comprasFiltradas]);
-
-  const totalEntradasCount = useMemo(() => {
-    return comprasFiltradas.length;
-  }, [comprasFiltradas]);
 
   const anosUnicos = useMemo(() => {
     const years = movs.map((m) => {
@@ -258,7 +222,7 @@ function CombustivelPage() {
           <div className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-2">Estoque</div>
           <h1 className="text-3xl font-bold tracking-tight">Combustível</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalEntradasCount} lançamentos · Total {fmtBRL(totalGasto)}
+            {filtrados.length} lançamentos · Total {fmtNum(filtrados.reduce((s, m) => s + Number(m.quantidade), 0))} Litros
           </p>
         </div>
         {canEdit && (
