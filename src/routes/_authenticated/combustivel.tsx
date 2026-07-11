@@ -68,6 +68,8 @@ function CombustivelPage() {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [filtroMes, setFiltroMes] = useState<string>("todos");
   const [filtroAno, setFiltroAno] = useState<string>("todos");
+  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
+  const [filtroMov, setFiltroMov] = useState<string>("todos");
 
   const { data: movs = [] } = useQuery({
     queryKey: ["combustivel"],
@@ -97,9 +99,11 @@ function CombustivelPage() {
 
       if (filtroMes !== "todos" && mesNome !== filtroMes) return false;
       if (filtroAno !== "todos" && ano !== filtroAno) return false;
+      if (filtroTipo !== "todos" && m.tipo !== filtroTipo) return false;
+      if (filtroMov !== "todos" && m.movimento !== filtroMov) return false;
       return true;
     });
-  }, [movs, filtroMes, filtroAno]);
+  }, [movs, filtroMes, filtroAno, filtroTipo, filtroMov]);
 
   const stats = useMemo(() => {
     const s10EntTotal = movs.filter((m) => m.tipo === "S10" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
@@ -215,7 +219,9 @@ function CombustivelPage() {
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-2">Estoque</div>
           <h1 className="text-3xl font-bold tracking-tight">Combustível</h1>
-          <p className="text-sm text-muted-foreground mt-1">Registro de entradas e consumo por diesel.</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {filtrados.length} lançamentos · Total {fmtNum(filtrados.reduce((s, m) => s + Number(m.quantidade), 0))} Litros
+          </p>
         </div>
         {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -305,9 +311,9 @@ function CombustivelPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-base">Histórico</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select value={filtroMes} onValueChange={setFiltroMes}>
-              <SelectTrigger className="w-[140px] h-8">
+              <SelectTrigger className="w-[130px] h-8">
                 <SelectValue placeholder="Mês" />
               </SelectTrigger>
               <SelectContent>
@@ -316,12 +322,32 @@ function CombustivelPage() {
               </SelectContent>
             </Select>
             <Select value={filtroAno} onValueChange={setFiltroAno}>
-              <SelectTrigger className="w-[100px] h-8">
+              <SelectTrigger className="w-[95px] h-8">
                 <SelectValue placeholder="Ano" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos anos</SelectItem>
                 {anosUnicos.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+              <SelectTrigger className="w-[125px] h-8">
+                <SelectValue placeholder="Combustível" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos tipos</SelectItem>
+                <SelectItem value="S10">Diesel S10</SelectItem>
+                <SelectItem value="S500">Diesel S500</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filtroMov} onValueChange={setFiltroMov}>
+              <SelectTrigger className="w-[125px] h-8">
+                <SelectValue placeholder="Movimento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos movs</SelectItem>
+                <SelectItem value="ENTRADA">Entrada</SelectItem>
+                <SelectItem value="SAIDA">Saída</SelectItem>
               </SelectContent>
             </Select>
           </div>
