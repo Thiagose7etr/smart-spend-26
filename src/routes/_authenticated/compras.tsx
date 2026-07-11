@@ -44,7 +44,7 @@ import {
 import { Plus, Search, Pencil, Trash2, FileDown, ScanLine, Loader2, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, type Compra } from "@/lib/db-types";
+import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, formatLocalDateString, type Compra } from "@/lib/db-types";
 import { useServerFn } from "@tanstack/react-start";
 import { extrairNotaFiscal } from "@/lib/nf-ocr.functions";
 import * as XLSX from "xlsx";
@@ -609,7 +609,8 @@ function ComprasPage() {
                 <TableHead>Item</TableHead>
                 <TableHead className="w-[110px]">Data</TableHead>
                 <TableHead className="w-[80px] text-right">Qtd</TableHead>
-                <TableHead className="w-[130px] text-right">Total</TableHead>
+                <TableHead className="w-[120px] text-right">Unitário</TableHead>
+                <TableHead className="w-[120px] text-right">Total</TableHead>
                 <TableHead className="w-[80px]">Frota</TableHead>
                 <TableHead className="w-[140px]">Tipo</TableHead>
                 {canEdit && <TableHead className="w-[80px]" />}
@@ -617,10 +618,10 @@ function ComprasPage() {
             </TableHeader>
             <TableBody>
               {isLoading && (
-                <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">Carregando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Carregando…</TableCell></TableRow>
               )}
               {!isLoading && filtrados.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">Nenhum lançamento encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Nenhum lançamento encontrado.</TableCell></TableRow>
               )}
               {filtrados.slice(0, 500).map((c) => (
                 <TableRow key={c.id}>
@@ -628,9 +629,10 @@ function ComprasPage() {
                   <TableCell className="font-medium">{c.fornecedor || "-"}</TableCell>
                   <TableCell className="text-muted-foreground max-w-[240px] truncate">{c.item || "-"}</TableCell>
                   <TableCell className="tabular-nums text-xs">
-                    {c.data_emissao ? new Date(c.data_emissao).toLocaleDateString("pt-BR") : "-"}
+                    {formatLocalDateString(c.data_emissao)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{c.quant ?? "-"}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">{fmtBRL(c.valor_unit)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{fmtBRL(c.valor_total)}</TableCell>
                   <TableCell className="text-xs">{c.frota || "-"}</TableCell>
                   <TableCell>

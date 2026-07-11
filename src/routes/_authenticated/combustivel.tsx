@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2, TrendingDown, CalendarClock, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { fmtNum, sbFrom, type Combustivel } from "@/lib/db-types";
+import { fmtNum, sbFrom, formatLocalDateString, type Combustivel } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/combustivel")({
@@ -293,7 +293,7 @@ function CombustivelPage() {
                 )}
                 {movs.map((m) => (
                   <TableRow key={m.id}>
-                    <TableCell className="tabular-nums text-xs">{new Date(m.data).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell className="tabular-nums text-xs">{formatLocalDateString(m.data)}</TableCell>
                     <TableCell><Badge variant="secondary">{m.tipo}</Badge></TableCell>
                     <TableCell>
                       {m.movimento === "ENTRADA" ? (

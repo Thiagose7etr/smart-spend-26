@@ -108,9 +108,32 @@ export function fmtNum(v: number | null | undefined, digits = 0) {
 
 export function mesFromDate(d: string | Date | null | undefined): { mes: string; ano: number } | null {
   if (!d) return null;
-  const date = typeof d === "string" ? new Date(d) : d;
-  if (Number.isNaN(date.getTime())) return null;
-  return { mes: MESES[date.getMonth()], ano: date.getFullYear() };
+  if (typeof d === "string") {
+    const cleanStr = d.includes("T") ? d.split("T")[0] : d;
+    const parts = cleanStr.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      if (monthIndex >= 0 && monthIndex < 12) {
+        return { mes: MESES[monthIndex], ano: year };
+      }
+    }
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return null;
+    // Força o parse local adicionando T00:00:00 se for apenas YYYY-MM-DD
+    const localDate = d.length === 10 ? new Date(d + "T00:00:00") : date;
+    return { mes: MESES[localDate.getMonth()], ano: localDate.getFullYear() };
+  } else {
+    return { mes: MESES[d.getMonth()], ano: d.getFullYear() };
+  }
+}
+
+export function formatLocalDateString(dateStr: string | null | undefined): string {
+  if (!dateStr) return "-";
+  const cleanStr = dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+  const parts = cleanStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
 // Untyped table accessor for tables missing from generated types.

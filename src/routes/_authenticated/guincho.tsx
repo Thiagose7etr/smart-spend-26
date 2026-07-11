@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Wrench, MapPin, Trash2, Pencil, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { sbFrom, type Guincho } from "@/lib/db-types";
+import { sbFrom, formatLocalDateString, type Guincho } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/guincho")({
@@ -249,7 +249,7 @@ function GuinchoPage() {
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground">
-                        {g.data ? new Date(g.data).toLocaleDateString("pt-BR") : "sem data"}
+                        {formatLocalDateString(g.data)}
                       </div>
                       <div className="font-semibold">Frota {g.frota || "—"}</div>
                     </div>
