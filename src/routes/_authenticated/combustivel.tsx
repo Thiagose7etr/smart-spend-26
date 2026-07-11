@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Fuel, Droplet, ArrowDownRight, ArrowUpRight, Trash2, TrendingDown, CalendarClock, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { fmtNum, sbFrom, formatLocalDateString, type Combustivel } from "@/lib/db-types";
+import { fmtNum, sbFrom, formatLocalDateString, MESES, type Combustivel } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/combustivel")({
@@ -66,6 +66,8 @@ function CombustivelPage() {
   const { access, loading: accessLoading } = useCurrentUserAccess();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
+  const [filtroMes, setFiltroMes] = useState<string>("todos");
+  const [filtroAno, setFiltroAno] = useState<string>("todos");
 
   const { data: movs = [] } = useQuery({
     queryKey: ["combustivel"],
@@ -76,16 +78,47 @@ function CombustivelPage() {
     },
   });
 
+  const anosUnicos = useMemo(() => {
+    const years = movs.map((m) => {
+      if (!m.data) return null;
+      return m.data.split("-")[0];
+    }).filter(Boolean) as string[];
+    return Array.from(new Set(years)).sort((a, b) => b.localeCompare(a));
+  }, [movs]);
+
+  const filtrados = useMemo(() => {
+    return movs.filter((m) => {
+      if (!m.data) return false;
+      const parts = m.data.split("-");
+      if (parts.length !== 3) return false;
+      const ano = parts[0];
+      const mesIndex = parseInt(parts[1], 10) - 1;
+      const mesNome = MESES[mesIndex];
+
+      if (filtroMes !== "todos" && mesNome !== filtroMes) return false;
+      if (filtroAno !== "todos" && ano !== filtroAno) return false;
+      return true;
+    });
+  }, [movs, filtroMes, filtroAno]);
+
   const stats = useMemo(() => {
-    const s10Ent = movs.filter((m) => m.tipo === "S10" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
-    const s10Sai = movs.filter((m) => m.tipo === "S10" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
-    const s500Ent = movs.filter((m) => m.tipo === "S500" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
-    const s500Sai = movs.filter((m) => m.tipo === "S500" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s10EntTotal = movs.filter((m) => m.tipo === "S10" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s10SaiTotal = movs.filter((m) => m.tipo === "S10" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s500EntTotal = movs.filter((m) => m.tipo === "S500" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s500SaiTotal = movs.filter((m) => m.tipo === "S500" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
+
+    const s10Estoque = s10EntTotal - s10SaiTotal;
+    const s500Estoque = s500EntTotal - s500SaiTotal;
+
+    const s10Ent = filtrados.filter((m) => m.tipo === "S10" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s10Sai = filtrados.filter((m) => m.tipo === "S10" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s500Ent = filtrados.filter((m) => m.tipo === "S500" && m.movimento === "ENTRADA").reduce((s, m) => s + Number(m.quantidade), 0);
+    const s500Sai = filtrados.filter((m) => m.tipo === "S500" && m.movimento === "SAIDA").reduce((s, m) => s + Number(m.quantidade), 0);
 
     const calcMedia = (tipo: string) => {
-      const saidas = movs.filter((m) => m.tipo === tipo && m.movimento === "SAIDA");
+      const saidas = filtrados.filter((m) => m.tipo === tipo && m.movimento === "SAIDA");
       if (saidas.length === 0) return 0;
-      const datas = saidas.map((m) => new Date(m.data).getTime()).filter((t) => !Number.isNaN(t));
+      const datas = saidas.map((m) => new Date(m.data + "T00:00:00").getTime()).filter((t) => !Number.isNaN(t));
       if (datas.length === 0) return 0;
       const min = Math.min(...datas);
       const max = Math.max(...datas);
@@ -96,8 +129,6 @@ function CombustivelPage() {
 
     const s10Media = calcMedia("S10");
     const s500Media = calcMedia("S500");
-    const s10Estoque = s10Ent - s10Sai;
-    const s500Estoque = s500Ent - s500Sai;
 
     return {
       s10Estoque, s500Estoque,
@@ -106,7 +137,7 @@ function CombustivelPage() {
       s10Dias: s10Media > 0 ? s10Estoque / s10Media : 0,
       s500Dias: s500Media > 0 ? s500Estoque / s500Media : 0,
     };
-  }, [movs]);
+  }, [movs, filtrados]);
 
   const salvar = useMutation({
     mutationFn: async (f: FormState) => {
@@ -272,7 +303,29 @@ function CombustivelPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Histórico</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-base">Histórico</CardTitle>
+          <div className="flex gap-2">
+            <Select value={filtroMes} onValueChange={setFiltroMes}>
+              <SelectTrigger className="w-[140px] h-8">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos meses</SelectItem>
+                {MESES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filtroAno} onValueChange={setFiltroAno}>
+              <SelectTrigger className="w-[100px] h-8">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos anos</SelectItem>
+                {anosUnicos.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -288,10 +341,10 @@ function CombustivelPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {movs.length === 0 && (
+                {filtrados.length === 0 && (
                   <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Nenhum lançamento.</TableCell></TableRow>
                 )}
-                {movs.map((m) => (
+                {filtrados.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="tabular-nums text-xs">{formatLocalDateString(m.data)}</TableCell>
                     <TableCell><Badge variant="secondary">{m.tipo}</Badge></TableCell>
