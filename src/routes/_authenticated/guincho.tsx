@@ -197,7 +197,7 @@ function GuinchoPage() {
                   </div>
                   <div>
                     <Label className="text-xs">Peso (kg)</Label>
-                    <Input type="number" value={form.peso_kg ?? ""} onChange={(e) => setForm({ ...form, peso_kg: Number(e.target.value) })} />
+                    <Input type="number" value={form.peso_kg === 0 ? "" : (form.peso_kg ?? "")} onChange={(e) => setForm({ ...form, peso_kg: e.target.value === "" ? "" : Number(e.target.value) })} />
                   </div>
                   <div>
                     <Label className="text-xs">Nome do Motorista</Label>

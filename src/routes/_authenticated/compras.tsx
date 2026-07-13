@@ -783,11 +783,11 @@ function CompraDialog({
         </div>
         <div>
           <Label className="text-xs">Quantidade</Label>
-          <Input type="number" step="0.01" value={form.quant ?? 0} onChange={(e) => update("quant", Number(e.target.value))} />
+          <Input type="number" step="0.01" value={form.quant === 0 ? "" : (form.quant ?? "")} onChange={(e) => update("quant", e.target.value === "" ? "" : Number(e.target.value))} />
         </div>
         <div>
           <Label className="text-xs">Valor Unitário</Label>
-          <Input type="number" step="0.01" value={form.valor_unit ?? 0} onChange={(e) => update("valor_unit", Number(e.target.value))} />
+          <Input type="number" step="0.01" value={form.valor_unit === 0 ? "" : (form.valor_unit ?? "")} onChange={(e) => update("valor_unit", e.target.value === "" ? "" : Number(e.target.value))} />
         </div>
         <div>
           <Label className="text-xs flex items-center justify-between">
@@ -796,7 +796,7 @@ function CompraDialog({
               Calcular ({fmtBRL(total)})
             </button>
           </Label>
-          <Input type="number" step="0.01" value={form.valor_total ?? 0} onChange={(e) => update("valor_total", Number(e.target.value))} />
+          <Input type="number" step="0.01" value={form.valor_total === 0 ? "" : (form.valor_total ?? "")} onChange={(e) => update("valor_total", e.target.value === "" ? "" : Number(e.target.value))} />
         </div>
         <div>
           <Label className="text-xs">Frota</Label>

@@ -262,7 +262,7 @@ function CombustivelPage() {
                   </div>
                   <div>
                     <Label className="text-xs">Quantidade (litros)</Label>
-                    <Input type="number" step="0.01" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })} />
+                    <Input type="number" step="0.01" value={form.quantidade === 0 ? "" : form.quantidade} onChange={(e) => setForm({ ...form, quantidade: e.target.value === "" ? "" : Number(e.target.value) })} />
                   </div>
                 </div>
                 <div>

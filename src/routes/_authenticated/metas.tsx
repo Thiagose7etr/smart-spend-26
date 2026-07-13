@@ -235,7 +235,7 @@ function MetasPage() {
                   </div>
                   <div>
                     <Label className="text-xs">Valor da meta (R$)</Label>
-                    <Input type="number" step="0.01" value={form.valor_meta} onChange={(e) => setForm({ ...form, valor_meta: Number(e.target.value) })} />
+                    <Input type="number" step="0.01" value={form.valor_meta === 0 ? "" : (form.valor_meta ?? "")} onChange={(e) => setForm({ ...form, valor_meta: e.target.value === "" ? "" : Number(e.target.value) })} />
                   </div>
                 </div>
                 <DialogFooter>
