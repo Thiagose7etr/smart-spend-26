@@ -114,6 +114,11 @@ function DashboardPage() {
   const canSee = (w: string) =>
     access?.canSeeWidget ? access.canSeeWidget(w as never) : true;
 
+  const isWidgetVisible = (id: string) => {
+    if (id === "custos-categoria") return canSee("top-categorias");
+    return canSee(id);
+  };
+
   const [layout, setLayout] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("dashboard-layout");
@@ -262,7 +267,7 @@ function DashboardPage() {
     },
   ];
 
-  const visibleWidgetsCount = layout.filter((id) => canSee(id)).length + (canSee("kpis") ? 1 : 0);
+  const visibleWidgetsCount = layout.filter((id) => isWidgetVisible(id)).length + (canSee("kpis") ? 1 : 0);
 
 
   const renderWidget = (id: string, index: number) => {
