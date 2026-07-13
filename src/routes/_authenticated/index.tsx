@@ -234,6 +234,7 @@ function DashboardPage() {
   });
   const custosPorCategoria = Array.from(catListMap.entries())
     .map(([name, value]) => ({ name, value: Math.round(value) }))
+    .filter((f) => f.value > 0)
     .sort((a, b) => b.value - a.value);
 
   const kpis = [
@@ -462,7 +463,7 @@ function DashboardPage() {
               collapsed={!!collapsed["custos-categoria"]}
               onToggle={toggle}
             >
-              <div className="space-y-3">
+              <div className="max-h-[320px] overflow-y-auto pr-1.5 space-y-3">
                 {custosPorCategoria.length === 0 && (
                   <p className="text-sm text-muted-foreground">Sem dados.</p>
                 )}
