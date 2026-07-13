@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ChevronUp,
   GripVertical,
+  LayoutDashboard,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -260,6 +261,8 @@ function DashboardPage() {
       sub: diferencaMes >= 0 ? "Abaixo da meta" : "Acima da meta",
     },
   ];
+
+  const visibleWidgetsCount = layout.filter((id) => canSee(id)).length + (canSee("kpis") ? 1 : 0);
 
 
   const renderWidget = (id: string, index: number) => {
@@ -588,9 +591,25 @@ function DashboardPage() {
       )}
 
       {/* Draggable Dashboard Grid */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {layout.map((id, index) => renderWidget(id, index))}
-      </div>
+      {visibleWidgetsCount > 0 ? (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {layout.map((id, index) => renderWidget(id, index))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center text-center p-8 mt-10 max-w-xl mx-auto rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-xl">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6">
+            <LayoutDashboard className="h-8 w-8" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Bem-vindo ao THcontrol!</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Seu painel de controle está vazio no momento. 
+            O administrador do sistema pode configurar quais blocos visuais você pode visualizar na tela inicial.
+          </p>
+          <p className="text-xs text-muted-foreground/80 mt-4">
+            Utilize o menu lateral para navegar pelas outras abas autorizadas.
+          </p>
+        </div>
+      )}
     </AppShell>
   );
 }
