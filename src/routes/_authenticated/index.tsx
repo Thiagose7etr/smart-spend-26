@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ChevronUp,
   GripVertical,
+  LayoutDashboard,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ function DashboardPage() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (id: string) =>
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
-  const { access } = useCurrentUserAccess();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
   const canSee = (w: string) =>
     access?.canSeeWidget ? access.canSeeWidget(w as never) : true;
 
@@ -260,6 +261,8 @@ function DashboardPage() {
       sub: diferencaMes >= 0 ? "Abaixo da meta" : "Acima da meta",
     },
   ];
+
+  const visibleWidgetsCount = layout.filter((id) => canSee(id)).length + (canSee("kpis") ? 1 : 0);
 
 
   const renderWidget = (id: string, index: number) => {
@@ -500,97 +503,123 @@ function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-        <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-2">
-            Painel Executivo
+      {accessLoading ? (
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando painel…</div>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+            <div>
+              <div className="text-xs uppercase tracking-[0.2em] text-primary/80 mb-2">
+                Painel Executivo
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                Controle Mensal de Custos
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Visão consolidada de compras, metas e desempenho por categoria.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Mês</span>
+              <Select value={mes} onValueChange={setMes}>
+                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODOS">Todos</SelectItem>
+                  {MESES.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground ml-2">Ano</span>
+              <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+                <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {anosDisponiveis.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Controle Mensal de Custos
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visão consolidada de compras, metas e desempenho por categoria.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Mês</span>
-          <Select value={mes} onValueChange={setMes}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="TODOS">Todos</SelectItem>
-              {MESES.map((m) => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground ml-2">Ano</span>
-          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-            <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {anosDisponiveis.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      {/* KPIs */}
-      {canSee("kpis") && (
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
-        {kpis.map((k) => {
-          const Icon = k.icon;
-          return (
-            <Card
-              key={k.label}
-              className="relative overflow-hidden border-border/60"
-              style={{ boxShadow: "var(--shadow-card)" }}
-            >
-              <div
-                className="absolute inset-x-0 top-0 h-[2px]"
-                style={{
-                  background:
-                    k.tone === "primary"
-                      ? "var(--gradient-primary)"
-                      : k.tone === "accent"
-                        ? "var(--gradient-accent)"
-                        : k.tone === "danger"
-                          ? "linear-gradient(90deg, oklch(0.62 0.22 25), oklch(0.7 0.18 30))"
-                          : "transparent",
-                }}
-              />
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {k.label}
-                  </div>
-                  <div
-                    className={`grid h-9 w-9 place-items-center rounded-lg ${
-                      k.tone === "danger"
-                        ? "bg-destructive/15 text-destructive"
-                        : k.tone === "accent"
-                          ? "bg-accent/15 text-accent"
-                          : "bg-primary/15 text-primary"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
+          {visibleWidgetsCount > 0 ? (
+            <>
+              {/* KPIs */}
+              {canSee("kpis") && (
+                <div className="grid gap-4 md:grid-cols-3 mb-8">
+                  {kpis.map((k) => {
+                    const Icon = k.icon;
+                    return (
+                      <Card
+                        key={k.label}
+                        className="relative overflow-hidden border-border/60"
+                        style={{ boxShadow: "var(--shadow-card)" }}
+                      >
+                        <div
+                          className="absolute inset-x-0 top-0 h-[2px]"
+                          style={{
+                            background:
+                              k.tone === "primary"
+                                ? "var(--gradient-primary)"
+                                : k.tone === "accent"
+                                  ? "var(--gradient-accent)"
+                                  : k.tone === "danger"
+                                    ? "linear-gradient(90deg, oklch(0.62 0.22 25), oklch(0.7 0.18 30))"
+                                    : "transparent",
+                          }}
+                        />
+                        <CardContent className="pt-6">
+                          <div className="flex items-start justify-between">
+                            <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                              {k.label}
+                            </div>
+                            <div
+                              className={`grid h-9 w-9 place-items-center rounded-lg ${
+                                k.tone === "danger"
+                                  ? "bg-destructive/15 text-destructive"
+                                  : k.tone === "accent"
+                                    ? "bg-accent/15 text-accent"
+                                    : "bg-primary/15 text-primary"
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                          </div>
+                          <div className="mt-4 text-2xl font-bold tabular-nums tracking-tight">
+                            {k.value}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">{k.sub}</div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
-                <div className="mt-4 text-2xl font-bold tabular-nums tracking-tight">
-                  {k.value}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">{k.sub}</div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              )}
+
+              {/* Draggable Dashboard Grid */}
+              <div className="grid gap-4 lg:grid-cols-3">
+                {layout.map((id, index) => renderWidget(id, index))}
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center p-8 mt-10 max-w-xl mx-auto rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-xl">
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6">
+                <LayoutDashboard className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Bem-vindo ao THcontrol!</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Seu painel de controle está vazio no momento. 
+                O administrador do sistema pode configurar quais blocos visuais você pode visualizar na tela inicial.
+              </p>
+              <p className="text-xs text-muted-foreground/80 mt-4">
+                Utilize o menu lateral para navegar pelas outras abas autorizadas.
+              </p>
+            </div>
+          )}
+        </>
       )}
-
-      {/* Draggable Dashboard Grid */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {layout.map((id, index) => renderWidget(id, index))}
-      </div>
     </AppShell>
   );
 }
