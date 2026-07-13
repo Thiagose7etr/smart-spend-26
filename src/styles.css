@@ -151,4 +151,14 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+
+  /* Esconde as setas padrão (spinners) de inputs do tipo number */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
 }

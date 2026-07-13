@@ -56,7 +56,7 @@ function MetasPage() {
     categoria: "COMBUSTIVEL",
     mes: MESES[now.getMonth()],
     ano: now.getFullYear(),
-    valor_meta: 0,
+    valor_meta: "" as any,
   });
 
   const { data: metas = [] } = useQuery({
@@ -132,7 +132,7 @@ function MetasPage() {
   };
 
   const novo = () => {
-    setForm({ categoria: CATEGORIAS[0], mes, ano, valor_meta: 0 });
+    setForm({ categoria: CATEGORIAS[0], mes, ano, valor_meta: "" as any });
     setDialogOpen(true);
   };
 

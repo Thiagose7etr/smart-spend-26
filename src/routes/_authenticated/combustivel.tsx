@@ -58,7 +58,7 @@ const emptyForm = (): FormState => ({
   data: new Date().toISOString().slice(0, 10),
   tipo: "S10",
   movimento: "SAIDA",
-  quantidade: 0,
+  quantidade: "" as any,
 });
 
 function CombustivelPage() {
