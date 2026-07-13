@@ -110,7 +110,18 @@ function DashboardPage() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (id: string) =>
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
-  const { access } = useCurrentUserAccess();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
+
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões…</div>
+        </div>
+      </AppShell>
+    );
+  }
+
   const canSee = (w: string) =>
     access?.canSeeWidget ? access.canSeeWidget(w as never) : true;
 
