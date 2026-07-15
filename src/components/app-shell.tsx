@@ -27,14 +27,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-const NAV: { to: string; label: string; icon: typeof LayoutDashboard; tab: TabName }[] = [
+const NAV: { to: string; label: string; icon: typeof LayoutDashboard; tab: TabName; color?: string }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, tab: "dashboard" },
   { to: "/compras", label: "Compras", icon: ShoppingCart, tab: "compras" },
   { to: "/metas", label: "Metas", icon: Target, tab: "metas" },
   { to: "/frotas", label: "Frotas", icon: Truck, tab: "frotas" },
   { to: "/combustivel", label: "Combustível", icon: Fuel, tab: "combustivel" },
   { to: "/guincho", label: "Guincho", icon: Wrench, tab: "guincho" },
-  { to: "/requisicoes", label: "Requisição", icon: ClipboardList, tab: "requisicoes" },
+  { to: "/requisicoes", label: "Requisição", icon: ClipboardList, tab: "requisicoes", color: "yellow" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -134,8 +134,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {nav.map(({ to, label, icon: Icon }) => {
+          {nav.map(({ to, label, icon: Icon, color }) => {
             const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+            const isYellow = color === "yellow";
             return (
               <Link
                 key={to}
@@ -143,14 +144,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className={cn(
                   "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                   active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_2px_0_0_var(--primary)]"
-                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60",
+                    ? isYellow
+                      ? "bg-yellow-500/10 text-yellow-400 shadow-[inset_2px_0_0_theme(colors.yellow.400)]"
+                      : "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_2px_0_0_var(--primary)]"
+                    : isYellow
+                      ? "text-yellow-500/70 hover:text-yellow-400 hover:bg-yellow-500/10"
+                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60",
                 )}
               >
                 <Icon
                   className={cn(
                     "h-4 w-4 transition-colors",
-                    active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                    active
+                      ? isYellow ? "text-yellow-400" : "text-primary"
+                      : isYellow ? "text-yellow-500/70 group-hover:text-yellow-400" : "text-muted-foreground group-hover:text-foreground",
                   )}
                 />
                 {label}
@@ -266,15 +273,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="md:hidden fixed bottom-0 inset-x-0 z-20 grid border-t border-border bg-sidebar"
           style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}
         >
-          {nav.map(({ to, label, icon: Icon }) => {
+          {nav.map(({ to, label, icon: Icon, color }) => {
             const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+            const isYellow = color === "yellow";
             return (
               <Link
                 key={to}
                 to={to}
                 className={cn(
                   "flex flex-col items-center gap-0.5 py-2 text-[10px]",
-                  active ? "text-primary" : "text-muted-foreground",
+                  active
+                    ? isYellow ? "text-yellow-400" : "text-primary"
+                    : isYellow ? "text-yellow-500/70" : "text-muted-foreground",
                 )}
               >
                 <Icon className="h-4 w-4" />
