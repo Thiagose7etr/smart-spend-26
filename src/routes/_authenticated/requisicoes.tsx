@@ -70,6 +70,7 @@ interface FormState {
   data: string;
   solicitante: string;
   status: "pendente" | "comprado" | "entregue";
+  observacao: string;
   itens: { id?: string; descricao: string; quantidade: number }[];
 }
 
@@ -78,6 +79,7 @@ const emptyForm = (defaultSolicitante: string): FormState => ({
   data: new Date().toISOString().split("T")[0],
   solicitante: defaultSolicitante,
   status: "pendente",
+  observacao: "",
   itens: [{ descricao: "", quantidade: 1 }],
 });
 
@@ -137,6 +139,7 @@ function RequisicoesPage() {
         data: f.data,
         solicitante: f.solicitante.trim(),
         status: f.status,
+        observacao: f.observacao ? f.observacao.trim() : null,
       };
 
       let reqId = f.id;
@@ -339,6 +342,15 @@ function RequisicoesPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Observações</Label>
+                  <Input
+                    value={form.observacao}
+                    onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+                    placeholder="Observações ou detalhes adicionais da requisição..."
+                  />
                 </div>
 
                 <div className="border-t border-border/40 pt-4">
@@ -557,6 +569,18 @@ function RequisicoesPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* Observações */}
+                    {r.observacao && (
+                      <div className="mt-3 text-xs bg-muted/20 border border-border/20 rounded-lg p-2.5">
+                        <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">
+                          Observações:
+                        </div>
+                        <p className="text-muted-foreground leading-relaxed break-words">
+                          {r.observacao}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions row */}
@@ -571,6 +595,7 @@ function RequisicoesPage() {
                               data: r.data,
                               solicitante: r.solicitante,
                               status: r.status,
+                              observacao: r.observacao || "",
                               itens: r.itens ? r.itens.map(it => ({ id: it.id, descricao: it.descricao, quantidade: it.quantidade })) : [{ descricao: "", quantidade: 1 }],
                             });
                             setDialogOpen(true);

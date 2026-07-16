@@ -349,6 +349,7 @@ export type Database = {
           data: string
           solicitante: string
           status: string
+          observacao: string | null
           created_at: string
           updated_at: string
         }
@@ -359,6 +360,7 @@ export type Database = {
           data?: string
           solicitante: string
           status?: string
+          observacao?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -369,6 +371,7 @@ export type Database = {
           data?: string
           solicitante?: string
           status?: string
+          observacao?: string | null
           created_at?: string
           updated_at?: string
         }

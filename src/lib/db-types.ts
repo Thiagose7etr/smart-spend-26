@@ -53,6 +53,7 @@ export type Requisicao = {
   data: string;
   solicitante: string;
   status: "pendente" | "comprado" | "entregue";
+  observacao?: string | null;
   created_at?: string;
   updated_at?: string;
   itens?: RequisicaoItem[];
