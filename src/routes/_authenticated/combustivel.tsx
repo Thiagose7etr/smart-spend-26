@@ -284,11 +284,9 @@ function CombustivelPage() {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <div className="grid gap-4 md:grid-cols-2 mb-6">
         <StatCard label="Estoque S10" value={`${fmtNum(stats.s10Estoque)} L`} icon={Fuel} tone="primary" />
         <StatCard label="Estoque S500" value={`${fmtNum(stats.s500Estoque)} L`} icon={Fuel} tone="accent" />
-        <StatCard label="Saídas S10" value={`${fmtNum(stats.s10Sai)} L`} icon={ArrowDownRight} tone="muted" />
-        <StatCard label="Saídas S500" value={`${fmtNum(stats.s500Sai)} L`} icon={ArrowDownRight} tone="muted" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 mb-6">
