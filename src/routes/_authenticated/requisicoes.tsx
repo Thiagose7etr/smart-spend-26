@@ -334,7 +334,7 @@ function RequisicoesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pendente">Pendente ⚠️</SelectItem>
-                        <SelectItem value="comprado">Comprado 🛒</SelectItem>
+                        <SelectItem value="comprado">Aguardando entrega 🛒</SelectItem>
                         <SelectItem value="entregue">Entregue ✅</SelectItem>
                       </SelectContent>
                     </Select>
@@ -452,7 +452,7 @@ function RequisicoesPage() {
                   : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/80"
               )}
             >
-              <ShoppingCart className="h-3 w-3 text-amber-500" /> Comprados ({countComprado})
+              <ShoppingCart className="h-3 w-3 text-amber-500" /> Aguardando entrega ({countComprado})
             </button>
             <button
               onClick={() => setStatusFiltro("entregue")}
@@ -504,7 +504,7 @@ function RequisicoesPage() {
                       )}
                       {r.status === "comprado" && (
                         <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border-amber-500/20 gap-1 py-0.5">
-                          <ShoppingCart className="h-3.5 w-3.5" /> Comprado
+                          <ShoppingCart className="h-3.5 w-3.5" /> Aguardando entrega
                         </Badge>
                       )}
                       {r.status === "entregue" && (
@@ -622,7 +622,7 @@ function RequisicoesPage() {
                               ? "bg-amber-500 text-white shadow-sm"
                               : "text-muted-foreground hover:bg-muted"
                           )}
-                          title="Marcar como Comprado"
+                          title="Marcar como Aguardando entrega"
                         >
                           <ShoppingCart className="h-3 w-3" />
                         </button>
