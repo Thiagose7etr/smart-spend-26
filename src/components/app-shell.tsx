@@ -12,6 +12,7 @@ import {
   Moon,
   ClipboardList,
   KeyRound,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type ReactNode, useState } from "react";
@@ -35,6 +36,7 @@ const NAV: { to: string; label: string; icon: typeof LayoutDashboard; tab: TabNa
   { to: "/combustivel", label: "Combustível", icon: Fuel, tab: "combustivel" },
   { to: "/guincho", label: "Guincho", icon: Wrench, tab: "guincho" },
   { to: "/requisicoes", label: "Requisição", icon: ClipboardList, tab: "requisicoes" },
+  { to: "/pedidos", label: "Pedidos de compra", icon: FileText, tab: "pedidos" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

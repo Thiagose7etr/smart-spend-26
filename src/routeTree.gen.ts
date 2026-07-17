@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedRequisicoesRouteImport } from './routes/_authenticated/requisicoes'
+import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 import { Route as AuthenticatedGuinchoRouteImport } from './routes/_authenticated/guincho'
 import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated/frotas'
@@ -40,6 +41,11 @@ const AuthenticatedRequisicoesRoute =
     path: '/requisicoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPedidosRoute = AuthenticatedPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
   id: '/metas',
   path: '/metas',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
   '/metas': typeof AuthenticatedMetasRoute
+  '/pedidos': typeof AuthenticatedPedidosRoute
   '/requisicoes': typeof AuthenticatedRequisicoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
 }
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
   '/metas': typeof AuthenticatedMetasRoute
+  '/pedidos': typeof AuthenticatedPedidosRoute
   '/requisicoes': typeof AuthenticatedRequisicoesRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/frotas': typeof AuthenticatedFrotasRoute
   '/_authenticated/guincho': typeof AuthenticatedGuinchoRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
+  '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
   '/_authenticated/requisicoes': typeof AuthenticatedRequisicoesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/frotas'
     | '/guincho'
     | '/metas'
+    | '/pedidos'
     | '/requisicoes'
     | '/admin/usuarios'
   fileRoutesByTo: FileRoutesByTo
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/frotas'
     | '/guincho'
     | '/metas'
+    | '/pedidos'
     | '/requisicoes'
     | '/'
     | '/admin/usuarios'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/frotas'
     | '/_authenticated/guincho'
     | '/_authenticated/metas'
+    | '/_authenticated/pedidos'
     | '/_authenticated/requisicoes'
     | '/_authenticated/'
     | '/_authenticated/admin/usuarios'
@@ -178,6 +190,13 @@ declare module '@tanstack/react-router' {
       path: '/requisicoes'
       fullPath: '/requisicoes'
       preLoaderRoute: typeof AuthenticatedRequisicoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pedidos': {
+      id: '/_authenticated/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof AuthenticatedPedidosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/metas': {
@@ -231,6 +250,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFrotasRoute: typeof AuthenticatedFrotasRoute
   AuthenticatedGuinchoRoute: typeof AuthenticatedGuinchoRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
+  AuthenticatedPedidosRoute: typeof AuthenticatedPedidosRoute
   AuthenticatedRequisicoesRoute: typeof AuthenticatedRequisicoesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
@@ -242,6 +262,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFrotasRoute: AuthenticatedFrotasRoute,
   AuthenticatedGuinchoRoute: AuthenticatedGuinchoRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
+  AuthenticatedPedidosRoute: AuthenticatedPedidosRoute,
   AuthenticatedRequisicoesRoute: AuthenticatedRequisicoesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
