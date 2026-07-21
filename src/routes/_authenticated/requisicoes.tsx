@@ -48,6 +48,7 @@ import {
   Hash,
   PlusCircle,
   Trash,
+  Printer,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -230,6 +231,228 @@ function RequisicoesPage() {
       [field]: val,
     };
     setForm({ ...form, itens: newItens });
+  };
+
+  const imprimirRequisicao = (r: Requisicao) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Bloqueador de pop-ups impediu a abertura da impressão.");
+      return;
+    }
+
+    const dateObj = new Date(r.data + "T00:00:00");
+    const formattedDate = dateObj.toLocaleDateString("pt-BR");
+
+    const itemsHtml = (r.itens || []).map((it, idx) => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 11px;">${idx + 1}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; font-size: 11px;">${it.descricao}</td>
+        <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 11px; font-weight: bold;">${it.quantidade}</td>
+      </tr>
+    `).join("");
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Requisição #${r.numero} — THcontrol</title>
+          <style>
+            @media print {
+              @page {
+                size: 20.5cm 16cm;
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                padding: 1cm 1.2cm;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              color: #111;
+              background-color: #fff;
+              margin: 0;
+              padding: 1cm 1.2cm;
+              box-sizing: border-box;
+              width: 20.5cm;
+              height: 16cm;
+              position: relative;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 2px solid #222;
+              padding-bottom: 8px;
+              margin-bottom: 12px;
+            }
+            .company-name {
+              font-size: 18px;
+              font-weight: 800;
+              letter-spacing: 0.5px;
+              color: #10b981; /* primary emerald color */
+            }
+            .title {
+              font-size: 13px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              color: #374151;
+            }
+            .req-number {
+              font-size: 16px;
+              font-weight: 800;
+              background-color: #f3f4f6;
+              padding: 4px 10px;
+              border-radius: 4px;
+              border: 1px solid #e5e7eb;
+            }
+            .meta-grid {
+              display: grid;
+              grid-template-cols: repeat(3, 1fr);
+              gap: 12px;
+              margin-bottom: 15px;
+              background-color: #f9fafb;
+              border: 1px solid #e5e7eb;
+              border-radius: 6px;
+              padding: 8px 12px;
+            }
+            .meta-item {
+              display: flex;
+              flex-direction: column;
+            }
+            .meta-label {
+              font-size: 9px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #6b7280;
+              margin-bottom: 2px;
+            }
+            .meta-value {
+              font-size: 12px;
+              font-weight: 600;
+              color: #111;
+            }
+            .items-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 15px;
+            }
+            .items-table th {
+              background-color: #f3f4f6;
+              border: 1px solid #d1d5db;
+              padding: 6px;
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              text-align: left;
+            }
+            .items-table td {
+              border: 1px solid #e5e7eb;
+              padding: 6px;
+              font-size: 11px;
+            }
+            .obs-section {
+              background-color: #fcfcfc;
+              border: 1px dashed #ccc;
+              border-radius: 4px;
+              padding: 6px 10px;
+              margin-bottom: 15px;
+              font-size: 11px;
+            }
+            .obs-title {
+              font-size: 8px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #777;
+              margin-bottom: 2px;
+            }
+            .signatures {
+              position: absolute;
+              bottom: 1.2cm;
+              left: 1.2cm;
+              right: 1.2cm;
+              display: grid;
+              grid-template-cols: 1fr 1fr;
+              gap: 40px;
+              text-align: center;
+            }
+            .signature-line {
+              border-top: 1px solid #222;
+              margin-top: 30px;
+              font-size: 10px;
+              font-weight: 600;
+              color: #374151;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="company-name">THcontrol</div>
+              <div class="title">REQUISIÇÃO DE COMPRA</div>
+            </div>
+            <div class="req-number"># ${r.numero}</div>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-item">
+              <div class="meta-label">Centro de Custo</div>
+              <div class="meta-value">${r.centro_custo}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Data</div>
+              <div class="meta-value">${formattedDate}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Solicitante</div>
+              <div class="meta-value">${r.solicitante}</div>
+            </div>
+          </div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 8%; text-align: center;">Item</th>
+                <th>Descrição do Item</th>
+                <th style="width: 15%; text-align: center;">Qtd</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          ${r.observacao ? `
+            <div class="obs-section">
+              <div class="obs-title">Observações:</div>
+              <div>${r.observacao}</div>
+            </div>
+          ` : ""}
+
+          <div class="signatures">
+            <div>
+              <div class="signature-line">Assinatura do Solicitante</div>
+            </div>
+            <div>
+              <div class="signature-line">Autorizado por</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
   };
 
   if (accessLoading) {
@@ -584,48 +807,59 @@ function RequisicoesPage() {
                   </div>
 
                   {/* Actions row */}
-                  {canEdit && (
-                    <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => {
-                            setForm({
-                              id: r.id,
-                              centro_custo: r.centro_custo,
-                              data: r.data,
-                              solicitante: r.solicitante,
-                              status: r.status,
-                              observacao: r.observacao || "",
-                              itens: r.itens ? r.itens.map(it => ({ id: it.id, descricao: it.descricao, quantidade: it.quantidade })) : [{ descricao: "", quantidade: 1 }],
-                            });
-                            setDialogOpen(true);
-                          }}
-                          className="inline-flex h-7 px-2 items-center gap-1 text-[11px] font-medium border border-border hover:bg-muted rounded text-muted-foreground hover:text-foreground transition cursor-pointer"
-                        >
-                          <Pencil className="h-3 w-3" /> Editar
-                        </button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="inline-flex h-7 px-2 items-center gap-1 text-[11px] font-medium border border-destructive/20 hover:bg-destructive/10 rounded text-destructive transition cursor-pointer">
-                              <Trash2 className="h-3 w-3" /> Excluir
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir requisição #{r.numero}?</AlertDialogTitle>
-                              <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => excluir.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0">
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                    <div className="flex gap-1.5">
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setForm({
+                                id: r.id,
+                                centro_custo: r.centro_custo,
+                                data: r.data,
+                                solicitante: r.solicitante,
+                                status: r.status,
+                                observacao: r.observacao || "",
+                                itens: r.itens ? r.itens.map(it => ({ id: it.id, descricao: it.descricao, quantidade: it.quantidade })) : [{ descricao: "", quantidade: 1 }],
+                              });
+                              setDialogOpen(true);
+                            }}
+                            className="inline-flex h-7 px-2 items-center gap-1 text-[11px] font-medium border border-border hover:bg-muted rounded text-muted-foreground hover:text-foreground transition cursor-pointer"
+                          >
+                            <Pencil className="h-3 w-3" /> Editar
+                          </button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button className="inline-flex h-7 px-2 items-center gap-1 text-[11px] font-medium border border-destructive/20 hover:bg-destructive/10 rounded text-destructive transition cursor-pointer">
+                                <Trash2 className="h-3 w-3" /> Excluir
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir requisição #{r.numero}?</AlertDialogTitle>
+                                <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => excluir.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0">
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      )}
+                      <button
+                        onClick={() => imprimirRequisicao(r)}
+                        className="inline-flex h-7 px-2 items-center gap-1 text-[11px] font-medium border border-border hover:bg-muted rounded text-muted-foreground hover:text-foreground transition cursor-pointer"
+                        title="Imprimir Requisição"
+                      >
+                        <Printer className="h-3 w-3 text-primary" /> Imprimir
+                      </button>
+                    </div>
 
-                      {/* Quick Status Changers */}
+                    {/* Quick Status Changers */}
+                    {canEdit && (
                       <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-md border border-border/30">
                         <button
                           onClick={() => atualizarStatus.mutate({ id: r.id, status: "pendente" })}
@@ -664,8 +898,8 @@ function RequisicoesPage() {
                           <CheckCircle2 className="h-3 w-3" />
                         </button>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
