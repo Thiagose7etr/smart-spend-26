@@ -33,7 +33,7 @@ export type Frota = {
   modelo: string | null;
   marca: string | null;
   chassi: string | null;
-  status?: "liberado" | "manutencao";
+  status?: "liberado" | "manutencao" | "inativo";
   defeito?: string | null;
 };
 

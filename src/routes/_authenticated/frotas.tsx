@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Truck, Search, ShieldAlert, Wrench, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, Search, ShieldAlert, Wrench, CheckCircle2, Ban } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { sbFrom, type Frota } from "@/lib/db-types";
@@ -89,7 +89,8 @@ function FrotasPage() {
       const matchStatus =
         statusFiltro === "todos" ||
         (statusFiltro === "liberado" && (f.status === "liberado" || !f.status)) ||
-        (statusFiltro === "manutencao" && f.status === "manutencao");
+        (statusFiltro === "manutencao" && f.status === "manutencao") ||
+        (statusFiltro === "inativo" && f.status === "inativo");
 
       return matchBusca && matchStatus;
     });
@@ -137,7 +138,7 @@ function FrotasPage() {
 
   const alternarStatus = useMutation({
     mutationFn: async (f: Frota) => {
-      const novo = f.status === "manutencao" ? "liberado" : "manutencao";
+      const novo = f.status === "manutencao" || f.status === "inativo" ? "liberado" : "manutencao";
       let defeito = null;
       if (novo === "manutencao") {
         const input = prompt("Digite o defeito / motivo da manutenção (opcional):");
@@ -244,6 +245,7 @@ function FrotasPage() {
                     <SelectContent>
                       <SelectItem value="liberado">Liberado</SelectItem>
                       <SelectItem value="manutencao">Em Manutenção</SelectItem>
+                      <SelectItem value="inativo">Inativo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -304,24 +306,48 @@ function FrotasPage() {
             >
               Em Manutenção ({frotas.filter(f => f.status === "manutencao").length})
             </button>
+            <button
+              onClick={() => setStatusFiltro("inativo")}
+              className={cn(
+                "px-3 py-1.5 rounded-full font-medium transition-colors border cursor-pointer select-none",
+                statusFiltro === "inativo"
+                  ? "bg-amber-600 border-amber-600 text-white"
+                  : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              Inativos ({frotas.filter(f => f.status === "inativo").length})
+            </button>
           </div>
         </CardContent>
       </Card>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {filtradas.map((f) => (
-          <Card key={f.id} className={`group transition-colors ${f.status === "manutencao" ? "border-destructive/50 hover:border-destructive" : "hover:border-primary/40"}`}>
+          <Card key={f.id} className={`group transition-all ${f.status === "manutencao" ? "border-rose-500/30 hover:border-rose-500/60" : f.status === "inativo" ? "border-border/40 hover:border-amber-500/40 opacity-75" : "border-border/50 hover:border-emerald-500/60"}`}>
             <CardContent className="pt-5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`grid h-11 w-11 place-items-center rounded-lg ${f.status === "manutencao" ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
+                  <div className={`grid h-11 w-11 place-items-center rounded-lg ${f.status === "manutencao" ? "bg-rose-500/10 text-rose-500" : f.status === "inativo" ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500"}`}>
                     <Truck className="h-5 w-5" />
                   </div>
                   <div>
                     <div className="text-xs uppercase tracking-wider text-muted-foreground">Frota</div>
                     <div className="text-lg font-bold tabular-nums">{f.codigo}</div>
-                    <div className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${f.status === "manutencao" ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
-                      {f.status === "manutencao" ? <><Wrench className="h-3 w-3" /> Manutenção</> : <><CheckCircle2 className="h-3 w-3" /> Liberada</>}
+                    <div className={cn(
+                      "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border",
+                      f.status === "manutencao"
+                        ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                        : f.status === "inativo"
+                        ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                    )}>
+                      {f.status === "manutencao" ? (
+                        <><Wrench className="h-3 w-3" /> Manutenção</>
+                      ) : f.status === "inativo" ? (
+                        <><Ban className="h-3 w-3" /> Inativa</>
+                      ) : (
+                        <><CheckCircle2 className="h-3 w-3" /> Liberada</>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -330,12 +356,12 @@ function FrotasPage() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className={`h-8 w-8 ${f.status === "manutencao" ? "text-primary" : "text-destructive"}`}
-                      title={f.status === "manutencao" ? "Liberar frota" : "Marcar em manutenção"}
+                      className={`h-8 w-8 ${f.status === "manutencao" ? "text-emerald-500 hover:text-emerald-600" : f.status === "inativo" ? "text-muted-foreground hover:text-foreground" : "text-rose-500 hover:text-rose-600"}`}
+                      title={f.status === "manutencao" ? "Liberar frota" : f.status === "inativo" ? "Liberar/Ativar frota" : "Marcar em manutenção"}
                       onClick={() => alternarStatus.mutate(f)}
                       disabled={alternarStatus.isPending}
                     >
-                      {f.status === "manutencao" ? <CheckCircle2 className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+                      {f.status === "manutencao" || f.status === "inativo" ? <CheckCircle2 className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
                     </Button>
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setForm(f); setDialogOpen(true); }}>
                       <Pencil className="h-3.5 w-3.5" />
