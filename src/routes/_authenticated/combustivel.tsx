@@ -307,7 +307,8 @@ function CombustivelPage() {
               value={stats.s10Media > 0 ? `${Math.round(stats.s10Dias)} dias` : "—"} 
               subtext={stats.s10Media > 0 ? `Até ${getDuracaoData(stats.s10Dias)}` : undefined} 
               icon={CalendarClock} 
-              highlight 
+              highlight={stats.s10Dias > 3}
+              danger={stats.s10Media > 0 && stats.s10Dias <= 3}
             />
           </CardContent>
         </Card>
@@ -321,7 +322,8 @@ function CombustivelPage() {
               value={stats.s500Media > 0 ? `${Math.round(stats.s500Dias)} dias` : "—"} 
               subtext={stats.s500Media > 0 ? `Até ${getDuracaoData(stats.s500Dias)}` : undefined} 
               icon={CalendarClock} 
-              highlight 
+              highlight={stats.s500Dias > 3}
+              danger={stats.s500Media > 0 && stats.s500Dias <= 3}
             />
           </CardContent>
         </Card>
@@ -441,13 +443,24 @@ function StatCard({ label, value, icon: Icon, tone }: { label: string; value: st
   );
 }
 
-function Metric({ label, value, subtext, icon: Icon, highlight }: { label: string; value: string; subtext?: string; icon: React.ElementType; highlight?: boolean }) {
+function Metric({ label, value, subtext, icon: Icon, highlight, danger }: { label: string; value: string; subtext?: string; icon: React.ElementType; highlight?: boolean; danger?: boolean }) {
+  let containerClass = "bg-muted/30 border-border";
+  let textClass = "";
+
+  if (danger) {
+    containerClass = "bg-rose-500/10 border-rose-500/40";
+    textClass = "text-rose-500";
+  } else if (highlight) {
+    containerClass = "bg-primary/10 border-primary/40";
+    textClass = "text-primary";
+  }
+
   return (
-    <div className={`rounded-lg border border-border p-3 ${highlight ? "bg-primary/10 border-primary/40" : "bg-muted/30"}`}>
+    <div className={`rounded-lg border p-3 ${containerClass}`}>
       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
         <Icon className="h-3 w-3" /> {label}
       </div>
-      <div className={`text-xl font-bold mt-1 tabular-nums ${highlight ? "text-primary" : ""}`}>{value}</div>
+      <div className={`text-xl font-bold mt-1 tabular-nums ${textClass}`}>{value}</div>
       {subtext && <div className="text-[10px] text-muted-foreground mt-1 font-medium">{subtext}</div>}
     </div>
   );
