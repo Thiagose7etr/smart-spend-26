@@ -35,6 +35,13 @@ import { toast } from "sonner";
 import { fmtNum, sbFrom, formatLocalDateString, MESES, type Combustivel } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
+const getDuracaoData = (dias: number) => {
+  if (dias <= 0) return "";
+  const date = new Date();
+  date.setDate(date.getDate() + Math.round(dias));
+  return date.toLocaleDateString("pt-BR");
+};
+
 export const Route = createFileRoute("/_authenticated/combustivel")({
   component: CombustivelPage,
   head: () => ({
@@ -295,7 +302,13 @@ function CombustivelPage() {
           <CardContent className="grid grid-cols-3 gap-4">
             <Metric label="Média diária" value={`${fmtNum(stats.s10Media, 1)} L`} icon={TrendingDown} />
             <Metric label="Estoque atual" value={`${fmtNum(stats.s10Estoque)} L`} icon={Fuel} />
-            <Metric label="Dura por" value={stats.s10Media > 0 ? `${fmtNum(stats.s10Dias, 1)} dias` : "—"} icon={CalendarClock} highlight />
+            <Metric 
+              label="Dura por" 
+              value={stats.s10Media > 0 ? `${Math.round(stats.s10Dias)} dias` : "—"} 
+              subtext={stats.s10Media > 0 ? `Até ${getDuracaoData(stats.s10Dias)}` : undefined} 
+              icon={CalendarClock} 
+              highlight 
+            />
           </CardContent>
         </Card>
         <Card>
@@ -303,7 +316,13 @@ function CombustivelPage() {
           <CardContent className="grid grid-cols-3 gap-4">
             <Metric label="Média diária" value={`${fmtNum(stats.s500Media, 1)} L`} icon={TrendingDown} />
             <Metric label="Estoque atual" value={`${fmtNum(stats.s500Estoque)} L`} icon={Fuel} />
-            <Metric label="Dura por" value={stats.s500Media > 0 ? `${fmtNum(stats.s500Dias, 1)} dias` : "—"} icon={CalendarClock} highlight />
+            <Metric 
+              label="Dura por" 
+              value={stats.s500Media > 0 ? `${Math.round(stats.s500Dias)} dias` : "—"} 
+              subtext={stats.s500Media > 0 ? `Até ${getDuracaoData(stats.s500Dias)}` : undefined} 
+              icon={CalendarClock} 
+              highlight 
+            />
           </CardContent>
         </Card>
       </div>
@@ -422,13 +441,14 @@ function StatCard({ label, value, icon: Icon, tone }: { label: string; value: st
   );
 }
 
-function Metric({ label, value, icon: Icon, highlight }: { label: string; value: string; icon: React.ElementType; highlight?: boolean }) {
+function Metric({ label, value, subtext, icon: Icon, highlight }: { label: string; value: string; subtext?: string; icon: React.ElementType; highlight?: boolean }) {
   return (
     <div className={`rounded-lg border border-border p-3 ${highlight ? "bg-primary/10 border-primary/40" : "bg-muted/30"}`}>
       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
         <Icon className="h-3 w-3" /> {label}
       </div>
       <div className={`text-xl font-bold mt-1 tabular-nums ${highlight ? "text-primary" : ""}`}>{value}</div>
+      {subtext && <div className="text-[10px] text-muted-foreground mt-1 font-medium">{subtext}</div>}
     </div>
   );
 }
