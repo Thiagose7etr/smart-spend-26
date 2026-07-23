@@ -82,6 +82,7 @@ function ComprasPage() {
   const [filtroMes, setFiltroMes] = useState<string>("todos");
   const [filtroAno, setFiltroAno] = useState<string>("todos");
   const [filtroFrota, setFiltroFrota] = useState<string>("todos");
+  const [filtroEquipamento, setFiltroEquipamento] = useState<string>("todos");
   const [filtroFornecedor, setFiltroFornecedor] = useState<string>("todos");
   const [filtroItem, setFiltroItem] = useState<string>("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -317,6 +318,30 @@ function ComprasPage() {
     },
   });
 
+  const { data: frotas = [] } = useQuery({
+    queryKey: ["frotas"],
+    queryFn: async () => {
+      const { data, error } = await sbFrom("frotas").select("*");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const frotaEquipamentoMap = useMemo(() => {
+    const map = new Map<string, string>();
+    frotas.forEach((f) => {
+      if (f.codigo && f.tipo) {
+        map.set(String(f.codigo).trim().toLowerCase(), String(f.tipo).trim().toUpperCase());
+      }
+    });
+    return map;
+  }, [frotas]);
+
+  const equipamentosUnicos = useMemo(() => {
+    const tipos = frotas.map((f) => String(f.tipo || "").trim().toUpperCase()).filter(Boolean);
+    return Array.from(new Set(tipos)).sort();
+  }, [frotas]);
+
   const filtrados = useMemo(() => {
     const b = busca.toLowerCase().trim();
     return compras.filter((c) => {
@@ -326,6 +351,13 @@ function ComprasPage() {
       if (filtroFrota !== "todos" && (c.frota || "") !== filtroFrota) return false;
       if (filtroFornecedor !== "todos" && (c.fornecedor || "") !== filtroFornecedor) return false;
       if (filtroItem !== "todos" && (c.item || "") !== filtroItem) return false;
+
+      if (filtroEquipamento !== "todos") {
+        const frotaCodigo = String(c.frota || "").trim().toLowerCase();
+        const equip = frotaEquipamentoMap.get(frotaCodigo);
+        if (equip !== filtroEquipamento) return false;
+      }
+
       if (!b) return true;
       return (
         (c.fornecedor || "").toLowerCase().includes(b) ||
@@ -334,7 +366,7 @@ function ComprasPage() {
         (c.frota || "").toLowerCase().includes(b)
       );
     });
-  }, [compras, busca, filtroTipo, filtroMes, filtroAno, filtroFrota, filtroFornecedor, filtroItem]);
+  }, [compras, busca, filtroTipo, filtroMes, filtroAno, filtroFrota, filtroFornecedor, filtroItem, filtroEquipamento, frotaEquipamentoMap]);
 
   const total = filtrados.reduce((s, c) => s + Number(c.valor_total || 0), 0);
 
@@ -580,6 +612,13 @@ function ComprasPage() {
             <SelectContent>
               <SelectItem value="todos">Todas frotas</SelectItem>
               {frotasUnicas.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtroEquipamento} onValueChange={setFiltroEquipamento}>
+            <SelectTrigger className="w-[170px]"><SelectValue placeholder="Equipamento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos equipamentos</SelectItem>
+              {equipamentosUnicos.map((eq) => <SelectItem key={eq} value={eq}>{eq}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filtroFornecedor} onValueChange={setFiltroFornecedor}>
