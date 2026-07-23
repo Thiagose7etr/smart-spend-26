@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Wrench, MapPin, Trash2, Pencil, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { sbFrom, formatLocalDateString, type Guincho } from "@/lib/db-types";
+import { sbFrom, formatLocalDateString, formatEquipmentType, type Guincho } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/guincho")({
@@ -78,7 +78,7 @@ function GuinchoPage() {
       const payload = {
         data: f.data || null,
         frota: f.frota || null,
-        tipo: f.tipo || null,
+        tipo: formatEquipmentType(f.tipo) || null,
         modelo: f.modelo || null,
         peso_kg: f.peso_kg ? Number(f.peso_kg) : null,
         problema: f.problema || null,

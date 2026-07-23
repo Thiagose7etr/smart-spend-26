@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 import { Plus, Pencil, Trash2, Truck, Search, ShieldAlert, Wrench, CheckCircle2, Ban } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { sbFrom, type Frota } from "@/lib/db-types";
+import { sbFrom, formatEquipmentType, type Frota } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/frotas")({
@@ -101,7 +101,7 @@ function FrotasPage() {
       const payload = {
         codigo: (f.codigo || "").toString(),
         placa: f.placa || null,
-        tipo: f.tipo || null,
+        tipo: formatEquipmentType(f.tipo) || null,
         modelo: f.modelo || null,
         marca: f.marca || null,
         chassi: f.chassi || null,
@@ -386,7 +386,7 @@ function FrotasPage() {
               </div>
               <div className="mt-4 space-y-1.5 text-sm">
                 <Row label="Placa" value={f.placa} mono />
-                <Row label="Tipo" value={f.tipo} />
+                <Row label="Tipo" value={formatEquipmentType(f.tipo)} />
                 <Row label="Modelo" value={f.modelo} />
                 <Row label="Marca" value={f.marca} />
                 <Row label="Chassi" value={f.chassi} mono small />

@@ -145,3 +145,12 @@ export function sbFrom(name: string): any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (supabase as any).from(name);
 }
+
+export function formatEquipmentType(tipo: string | null | undefined): string {
+  if (!tipo) return "";
+  const t = tipo.trim().toUpperCase();
+  if (t === "ROLLON" || t === "ROLL-ON" || t === "ROLL ON" || t === "ROLL ON OFF" || t === "ROLL ON/OFF") {
+    return "ROLL ON/OFF";
+  }
+  return t;
+}

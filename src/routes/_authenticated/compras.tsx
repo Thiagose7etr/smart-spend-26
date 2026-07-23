@@ -44,7 +44,7 @@ import {
 import { Plus, Search, Pencil, Trash2, FileDown, ScanLine, Loader2, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, formatLocalDateString, type Compra } from "@/lib/db-types";
+import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, formatLocalDateString, formatEquipmentType, type Compra } from "@/lib/db-types";
 import { useServerFn } from "@tanstack/react-start";
 import { extrairNotaFiscal } from "@/lib/nf-ocr.functions";
 import * as XLSX from "xlsx";
@@ -331,14 +331,14 @@ function ComprasPage() {
     const map = new Map<string, string>();
     frotas.forEach((f) => {
       if (f.codigo && f.tipo) {
-        map.set(String(f.codigo).trim().toLowerCase(), String(f.tipo).trim().toUpperCase());
+        map.set(String(f.codigo).trim().toLowerCase(), formatEquipmentType(f.tipo));
       }
     });
     return map;
   }, [frotas]);
 
   const equipamentosUnicos = useMemo(() => {
-    const tipos = frotas.map((f) => String(f.tipo || "").trim().toUpperCase()).filter(Boolean);
+    const tipos = frotas.map((f) => formatEquipmentType(f.tipo)).filter(Boolean);
     return Array.from(new Set(tipos)).sort();
   }, [frotas]);
 
