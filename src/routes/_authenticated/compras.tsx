@@ -567,7 +567,7 @@ function ComprasPage() {
                     <Plus className="h-4 w-4 mr-2" /> Nova Compra
                   </Button>
                 </DialogTrigger>
-                <CompraDialog form={form} setForm={setForm} onSave={() => salvar.mutate(form)} saving={salvar.isPending} tipos={tiposUnicos} />
+                <CompraDialog form={form} setForm={setForm} onSave={() => salvar.mutate(form)} saving={salvar.isPending} tipos={tiposUnicos} fornecedores={fornecedoresUnicos} />
               </Dialog>
             </>
           )}
@@ -787,16 +787,28 @@ function CompraDialog({
   onSave,
   saving,
   tipos,
+  fornecedores,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
   onSave: () => void;
   saving: boolean;
   tipos: string[];
+  fornecedores: string[];
 }) {
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm({ ...form, [k]: v });
   const total = Number(form.quant || 0) * Number(form.valor_unit || 0);
   const useCalculated = () => update("valor_total", total);
+
+  const [showSug, setShowSug] = useState(false);
+  const query = (form.fornecedor || "").trim().toLowerCase();
+  const sugestoesFiltradas = useMemo(() => {
+    if (!query) return [];
+    return fornecedores.filter(f => 
+      f.toLowerCase().includes(query) && 
+      f.toLowerCase() !== query
+    ).slice(0, 8);
+  }, [fornecedores, query]);
 
   return (
     <DialogContent className="max-w-2xl">
@@ -812,9 +824,33 @@ function CompraDialog({
           <Label className="text-xs">Data emissão</Label>
           <Input type="date" value={form.data_emissao ?? ""} onChange={(e) => update("data_emissao", e.target.value)} />
         </div>
-        <div className="col-span-2">
+        <div className="col-span-2 relative">
           <Label className="text-xs">Fornecedor</Label>
-          <Input value={form.fornecedor ?? ""} onChange={(e) => update("fornecedor", e.target.value)} placeholder="Nome do fornecedor" />
+          <Input 
+            value={form.fornecedor ?? ""} 
+            onChange={(e) => update("fornecedor", e.target.value)} 
+            placeholder="Nome do fornecedor" 
+            onFocus={() => setShowSug(true)}
+            onBlur={() => setTimeout(() => setShowSug(false), 200)}
+          />
+          {showSug && sugestoesFiltradas.length > 0 && (
+            <div className="absolute left-0 right-0 z-50 bg-[#0e0f12] border border-border/40 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1 py-1">
+              {sugestoesFiltradas.map((forn) => (
+                <button
+                  key={forn}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    update("fornecedor", forn);
+                    setShowSug(false);
+                  }}
+                  className="w-full text-left text-xs hover:bg-muted text-zinc-100 hover:text-white py-2.5 px-3 cursor-pointer transition-colors"
+                >
+                  {forn}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="col-span-2">
           <Label className="text-xs">Item / Descrição</Label>
