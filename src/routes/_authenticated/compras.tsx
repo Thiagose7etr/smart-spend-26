@@ -60,18 +60,42 @@ export const Route = createFileRoute("/_authenticated/compras")({
   }),
 });
 
-type FormState = Partial<Compra> & { id?: string };
+interface ItemLinha {
+  item: string;
+  quant: number;
+  valor_unit: number;
+  valor_total: number;
+}
+
+interface FormState {
+  id?: string;
+  nf: string;
+  fornecedor: string;
+  data_emissao: string;
+  prazo_pag: string;
+  frota: string;
+  tipo: string;
+  // Campos para modo edição individual
+  item: string;
+  quant: number;
+  valor_unit: number;
+  valor_total: number;
+  // Lista de itens para modo de criação múltipla
+  itens: ItemLinha[];
+}
+
 const emptyForm = (): FormState => ({
   nf: "",
   fornecedor: "",
   data_emissao: new Date().toISOString().slice(0, 10),
+  prazo_pag: "",
+  frota: "",
+  tipo: "PEÇAS",
   item: "",
   quant: "" as any,
   valor_unit: "" as any,
   valor_total: "" as any,
-  frota: "",
-  prazo_pag: "",
-  tipo: "PEÇAS",
+  itens: [{ item: "", quant: "" as any, valor_unit: "" as any, valor_total: "" as any }],
 });
 
 function ComprasPage() {
@@ -118,6 +142,14 @@ function ComprasPage() {
         valor_unit: res.valor_unit ?? 0,
         valor_total: res.valor_total ?? (Number(res.quant || 0) * Number(res.valor_unit || 0)),
         tipo: res.tipo ?? "PEÇAS",
+        itens: [
+          {
+            item: res.item ?? "",
+            quant: res.quant ?? 1,
+            valor_unit: res.valor_unit ?? 0,
+            valor_total: res.valor_total ?? (Number(res.quant || 0) * Number(res.valor_unit || 0)),
+          }
+        ]
       });
       setDialogOpen(true);
       toast.success("NF lida! Confira os dados antes de salvar.");
@@ -380,25 +412,42 @@ function ComprasPage() {
   const salvar = useMutation({
     mutationFn: async (f: FormState) => {
       const info = mesFromDate(f.data_emissao || null);
-      const payload = {
-        nf: f.nf || null,
-        fornecedor: f.fornecedor || null,
-        data_emissao: f.data_emissao || null,
-        item: f.item || null,
-        quant: Number(f.quant || 0),
-        valor_unit: Number(f.valor_unit || 0),
-        valor_total: Number(f.valor_total || 0),
-        frota: f.frota || null,
-        prazo_pag: f.prazo_pag || null,
-        tipo: f.tipo || null,
-        mes: info?.mes ?? null,
-        ano: info?.ano ?? null,
-      };
       if (f.id) {
+        // Modo edição individual
+        const payload = {
+          nf: f.nf || null,
+          fornecedor: f.fornecedor || null,
+          data_emissao: f.data_emissao || null,
+          item: f.item || null,
+          quant: Number(f.quant || 0),
+          valor_unit: Number(f.valor_unit || 0),
+          valor_total: Number(f.valor_total || 0),
+          frota: f.frota || null,
+          prazo_pag: f.prazo_pag || null,
+          tipo: f.tipo || null,
+          mes: info?.mes ?? null,
+          ano: info?.ano ?? null,
+        };
         const { error } = await sbFrom("compras").update(payload).eq("id", f.id);
         if (error) throw error;
       } else {
-        const { error } = await sbFrom("compras").insert(payload);
+        // Modo inserção em lote (Nova Compra com múltiplos itens)
+        const rows = f.itens.map((it) => ({
+          nf: f.nf || null,
+          fornecedor: f.fornecedor || null,
+          data_emissao: f.data_emissao || null,
+          item: it.item || null,
+          quant: Number(it.quant || 0),
+          valor_unit: Number(it.valor_unit || 0),
+          valor_total: Number(it.valor_total || (Number(it.quant || 0) * Number(it.valor_unit || 0))),
+          frota: f.frota || null,
+          prazo_pag: f.prazo_pag || null,
+          tipo: f.tipo || null,
+          mes: info?.mes ?? null,
+          ano: info?.ano ?? null,
+        }));
+        
+        const { error } = await sbFrom("compras").insert(rows);
         if (error) throw error;
       }
     },
@@ -427,7 +476,27 @@ function ComprasPage() {
     setDialogOpen(true);
   };
   const openEditar = (c: Compra) => {
-    setForm({ ...c });
+    setForm({
+      id: c.id,
+      nf: c.nf || "",
+      fornecedor: c.fornecedor || "",
+      data_emissao: c.data_emissao || "",
+      prazo_pag: c.prazo_pag || "",
+      frota: c.frota || "",
+      tipo: c.tipo || "",
+      item: c.item || "",
+      quant: Number(c.quant || 0),
+      valor_unit: Number(c.valor_unit || 0),
+      valor_total: Number(c.valor_total || 0),
+      itens: [
+        {
+          item: c.item || "",
+          quant: Number(c.quant || 0),
+          valor_unit: Number(c.valor_unit || 0),
+          valor_total: Number(c.valor_total || 0),
+        }
+      ]
+    });
     setDialogOpen(true);
   };
 
@@ -810,88 +879,171 @@ function CompraDialog({
     ).slice(0, 8);
   }, [fornecedores, query]);
 
+  const addItem = () => {
+    update("itens", [...form.itens, { item: "", quant: "" as any, valor_unit: "" as any, valor_total: 0 }]);
+  };
+
+  const removeItem = (index: number) => {
+    const list = [...form.itens];
+    list.splice(index, 1);
+    update("itens", list);
+  };
+
+  const updateItem = <K extends keyof ItemLinha>(index: number, key: K, val: ItemLinha[K]) => {
+    const list = [...form.itens];
+    list[index] = { ...list[index], [key]: val };
+    
+    if (key === "quant" || key === "valor_unit") {
+      const q = Number(key === "quant" ? val : list[index].quant || 0);
+      const u = Number(key === "valor_unit" ? val : list[index].valor_unit || 0);
+      list[index].valor_total = q * u;
+    }
+    
+    update("itens", list);
+  };
+
+  const totalNota = form.itens.reduce((sum, it) => sum + (Number(it.quant || 0) * Number(it.valor_unit || 0)), 0);
+
   return (
-    <DialogContent className="max-w-2xl">
+    <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
       <DialogHeader>
         <DialogTitle>{form.id ? "Editar compra" : "Nova compra"}</DialogTitle>
       </DialogHeader>
-      <div className="grid grid-cols-2 gap-4 py-2">
-        <div>
-          <Label className="text-xs">Nota Fiscal</Label>
-          <Input value={form.nf ?? ""} onChange={(e) => update("nf", e.target.value)} placeholder="12345" />
+
+      <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+        {/* Cabeçalho comum */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">Nota Fiscal</Label>
+            <Input value={form.nf ?? ""} onChange={(e) => update("nf", e.target.value)} placeholder="12345" />
+          </div>
+          <div>
+            <Label className="text-xs">Data emissão</Label>
+            <Input type="date" value={form.data_emissao ?? ""} onChange={(e) => update("data_emissao", e.target.value)} />
+          </div>
+          <div className="col-span-2 relative">
+            <Label className="text-xs">Fornecedor</Label>
+            <Input 
+              value={form.fornecedor ?? ""} 
+              onChange={(e) => update("fornecedor", e.target.value)} 
+              placeholder="Nome do fornecedor" 
+              onFocus={() => setShowSug(true)}
+              onBlur={() => setTimeout(() => setShowSug(false), 200)}
+            />
+            {showSug && sugestoesFiltradas.length > 0 && (
+              <div className="absolute left-0 right-0 z-50 bg-[#0e0f12] border border-border/40 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1 py-1">
+                {sugestoesFiltradas.map((forn) => (
+                  <button
+                    key={forn}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      update("fornecedor", forn);
+                      setShowSug(false);
+                    }}
+                    className="w-full text-left text-xs hover:bg-muted text-zinc-100 hover:text-white py-2.5 px-3 cursor-pointer transition-colors"
+                  >
+                    {forn}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <Label className="text-xs">Frota {form.id ? "" : "Padrão"}</Label>
+            <Input value={form.frota ?? ""} onChange={(e) => update("frota", e.target.value)} placeholder="201 ou ESTOQUE" />
+          </div>
+          <div>
+            <Label className="text-xs">Prazo de pagamento</Label>
+            <Input value={form.prazo_pag ?? ""} onChange={(e) => update("prazo_pag", e.target.value)} placeholder="28 ou 15/30/45" />
+          </div>
+          <div className="col-span-2">
+            <Label className="text-xs">Tipo / Categoria {form.id ? "" : "Padrão"}</Label>
+            <Select value={form.tipo ?? ""} onValueChange={(v) => update("tipo", v)}>
+              <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+              <SelectContent>
+                {tipos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs">Data emissão</Label>
-          <Input type="date" value={form.data_emissao ?? ""} onChange={(e) => update("data_emissao", e.target.value)} />
-        </div>
-        <div className="col-span-2 relative">
-          <Label className="text-xs">Fornecedor</Label>
-          <Input 
-            value={form.fornecedor ?? ""} 
-            onChange={(e) => update("fornecedor", e.target.value)} 
-            placeholder="Nome do fornecedor" 
-            onFocus={() => setShowSug(true)}
-            onBlur={() => setTimeout(() => setShowSug(false), 200)}
-          />
-          {showSug && sugestoesFiltradas.length > 0 && (
-            <div className="absolute left-0 right-0 z-50 bg-[#0e0f12] border border-border/40 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1 py-1">
-              {sugestoesFiltradas.map((forn) => (
-                <button
-                  key={forn}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    update("fornecedor", forn);
-                    setShowSug(false);
-                  }}
-                  className="w-full text-left text-xs hover:bg-muted text-zinc-100 hover:text-white py-2.5 px-3 cursor-pointer transition-colors"
-                >
-                  {forn}
-                </button>
+
+        {/* Condicional: Edição (Item único) vs Criação (Múltiplos Itens) */}
+        {form.id ? (
+          <div className="border-t border-border/40 pt-4 space-y-4">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados do Item</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <Label className="text-xs">Item / Descrição</Label>
+                <Input value={form.item ?? ""} onChange={(e) => update("item", e.target.value)} placeholder="Bomba d'água, filtro, etc." />
+              </div>
+              <div>
+                <Label className="text-xs">Quantidade</Label>
+                <Input type="number" step="0.01" value={form.quant === 0 ? "" : (form.quant ?? "")} onChange={(e) => update("quant", e.target.value === "" ? "" : Number(e.target.value))} />
+              </div>
+              <div>
+                <Label className="text-xs">Valor Unitário</Label>
+                <Input type="number" step="0.01" value={form.valor_unit === 0 ? "" : (form.valor_unit ?? "")} onChange={(e) => update("valor_unit", e.target.value === "" ? "" : Number(e.target.value))} />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs flex items-center justify-between">
+                  Valor Total
+                  <button type="button" onClick={useCalculated} className="text-[10px] text-primary hover:underline">
+                    Calcular ({fmtBRL(total)})
+                  </button>
+                </Label>
+                <Input type="number" step="0.01" value={form.valor_total === 0 ? "" : (form.valor_total ?? "")} onChange={(e) => update("valor_total", e.target.value === "" ? "" : Number(e.target.value))} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="border-t border-border/40 pt-4 space-y-3">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">Itens da Nota Fiscal</span>
+              <Button type="button" size="sm" variant="ghost" className="h-7 text-primary hover:text-primary hover:bg-primary/10 gap-1" onClick={addItem}>
+                <Plus className="h-3.5 w-3.5" /> Adicionar item
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              {form.itens.map((it, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-end bg-[#0c0d10]/40 p-2 border border-border/20 rounded-md">
+                  <div className="col-span-5">
+                    <Label className="text-[10px] text-muted-foreground">Item / Descrição</Label>
+                    <Input value={it.item} onChange={(e) => updateItem(index, "item", e.target.value)} placeholder="Descrição do item" className="h-8 text-xs" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px] text-muted-foreground">Quant.</Label>
+                    <Input type="number" step="0.01" value={it.quant === 0 ? "" : it.quant} onChange={(e) => updateItem(index, "quant", e.target.value === "" ? "" : Number(e.target.value))} className="h-8 text-xs" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px] text-muted-foreground">V. Unitário</Label>
+                    <Input type="number" step="0.01" value={it.valor_unit === 0 ? "" : it.valor_unit} onChange={(e) => updateItem(index, "valor_unit", e.target.value === "" ? "" : Number(e.target.value))} className="h-8 text-xs" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px] text-muted-foreground">V. Total</Label>
+                    <div className="h-8 flex items-center justify-end px-2 bg-muted/30 border border-input rounded-md text-xs font-mono font-semibold text-zinc-300">
+                      {fmtBRL(it.quant * it.valor_unit)}
+                    </div>
+                  </div>
+                  <div className="col-span-1 flex justify-center">
+                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removeItem(index)} disabled={form.itens.length <= 1}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
-          )}
-        </div>
-        <div className="col-span-2">
-          <Label className="text-xs">Item / Descrição</Label>
-          <Input value={form.item ?? ""} onChange={(e) => update("item", e.target.value)} placeholder="Bomba d'água, filtro, etc." />
-        </div>
-        <div>
-          <Label className="text-xs">Quantidade</Label>
-          <Input type="number" step="0.01" value={form.quant === 0 ? "" : (form.quant ?? "")} onChange={(e) => update("quant", e.target.value === "" ? "" : Number(e.target.value))} />
-        </div>
-        <div>
-          <Label className="text-xs">Valor Unitário</Label>
-          <Input type="number" step="0.01" value={form.valor_unit === 0 ? "" : (form.valor_unit ?? "")} onChange={(e) => update("valor_unit", e.target.value === "" ? "" : Number(e.target.value))} />
-        </div>
-        <div>
-          <Label className="text-xs flex items-center justify-between">
-            Valor Total
-            <button type="button" onClick={useCalculated} className="text-[10px] text-primary hover:underline">
-              Calcular ({fmtBRL(total)})
-            </button>
-          </Label>
-          <Input type="number" step="0.01" value={form.valor_total === 0 ? "" : (form.valor_total ?? "")} onChange={(e) => update("valor_total", e.target.value === "" ? "" : Number(e.target.value))} />
-        </div>
-        <div>
-          <Label className="text-xs">Frota</Label>
-          <Input value={form.frota ?? ""} onChange={(e) => update("frota", e.target.value)} placeholder="201 ou ESTOQUE" />
-        </div>
-        <div>
-          <Label className="text-xs">Prazo de pagamento</Label>
-          <Input value={form.prazo_pag ?? ""} onChange={(e) => update("prazo_pag", e.target.value)} placeholder="28 ou 15/30/45" />
-        </div>
-        <div>
-          <Label className="text-xs">Tipo / Categoria</Label>
-          <Select value={form.tipo ?? ""} onValueChange={(v) => update("tipo", v)}>
-            <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-            <SelectContent>
-              {tipos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+
+            <div className="flex justify-between items-center bg-[#0c0d10]/60 p-3 border border-border/20 rounded-md">
+              <span className="text-xs font-semibold text-muted-foreground uppercase">Valor Total da Nota</span>
+              <span className="text-base font-bold text-primary font-mono">{fmtBRL(totalNota)}</span>
+            </div>
+          </div>
+        )}
       </div>
-      <DialogFooter>
+
+      <DialogFooter className="pt-2 border-t border-border/40">
         <Button
           onClick={onSave}
           disabled={saving}
