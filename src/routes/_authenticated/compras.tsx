@@ -44,7 +44,7 @@ import {
 import { Plus, Search, Pencil, Trash2, FileDown, ScanLine, Loader2, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, formatLocalDateString, formatEquipmentType, type Compra } from "@/lib/db-types";
+import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, formatLocalDateString, formatEquipmentType, formatSupplierName, type Compra } from "@/lib/db-types";
 import { useServerFn } from "@tanstack/react-start";
 import { extrairNotaFiscal } from "@/lib/nf-ocr.functions";
 import * as XLSX from "xlsx";
@@ -135,7 +135,7 @@ function ComprasPage() {
       setForm({
         ...emptyForm(),
         nf: res.nf ?? "",
-        fornecedor: res.fornecedor ?? "",
+        fornecedor: formatSupplierName(res.fornecedor) || "",
         data_emissao: res.data_emissao ?? new Date().toISOString().slice(0, 10),
         item: res.item ?? "",
         quant: res.quant ?? 1,
@@ -249,7 +249,7 @@ function ComprasPage() {
 
           parsedRows.push({
             nf: nfVal,
-            fornecedor: fornecedorVal,
+            fornecedor: formatSupplierName(fornecedorVal),
             data_emissao: dateVal,
             item: itemVal,
             quant: quantVal,
@@ -416,7 +416,7 @@ function ComprasPage() {
         // Modo edição individual
         const payload = {
           nf: f.nf || null,
-          fornecedor: f.fornecedor || null,
+          fornecedor: formatSupplierName(f.fornecedor) || null,
           data_emissao: f.data_emissao || null,
           item: f.item || null,
           quant: Number(f.quant || 0),
@@ -434,7 +434,7 @@ function ComprasPage() {
         // Modo inserção em lote (Nova Compra com múltiplos itens)
         const rows = f.itens.map((it) => ({
           nf: f.nf || null,
-          fornecedor: f.fornecedor || null,
+          fornecedor: formatSupplierName(f.fornecedor) || null,
           data_emissao: f.data_emissao || null,
           item: it.item || null,
           quant: Number(it.quant || 0),

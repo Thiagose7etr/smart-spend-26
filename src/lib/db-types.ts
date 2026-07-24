@@ -154,3 +154,12 @@ export function formatEquipmentType(tipo: string | null | undefined): string {
   }
   return t;
 }
+
+export function formatSupplierName(name: string | null | undefined): string {
+  if (!name) return "";
+  const n = name.trim().toUpperCase();
+  if (n === "ANCHIETA" || n === "ANCHEITA" || n === "ANCHIETA PECAS" || n === "ANCHIETA PEÇAS") {
+    return "ANCHIETA PEÇAS";
+  }
+  return n;
+}
