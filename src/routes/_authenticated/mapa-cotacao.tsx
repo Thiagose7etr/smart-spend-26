@@ -61,6 +61,7 @@ interface FornecedorFaturamento {
 function MapaCotacaoPage() {
   const qc = useQueryClient();
   const { access } = useCurrentUserAccess();
+  const canEdit = access?.canEdit("mapa-cotacao") ?? false;
 
   const [buscaReq, setBuscaReq] = useState("");
   const [numeroPesquisado, setNumeroPesquisado] = useState<number | null>(null);
