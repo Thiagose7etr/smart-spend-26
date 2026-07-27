@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedRequisicoesRouteImport } from './routes/_authenticated/requisicoes'
 import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
+import { Route as AuthenticatedMapaCotacaoRouteImport } from './routes/_authenticated/mapa-cotacao'
 import { Route as AuthenticatedGuinchoRouteImport } from './routes/_authenticated/guincho'
 import { Route as AuthenticatedFrotasRouteImport } from './routes/_authenticated/frotas'
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
@@ -51,6 +52,12 @@ const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
   path: '/metas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMapaCotacaoRoute =
+  AuthenticatedMapaCotacaoRouteImport.update({
+    id: '/mapa-cotacao',
+    path: '/mapa-cotacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGuinchoRoute = AuthenticatedGuinchoRouteImport.update({
   id: '/guincho',
   path: '/guincho',
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/compras': typeof AuthenticatedComprasRoute
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
+  '/mapa-cotacao': typeof AuthenticatedMapaCotacaoRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/requisicoes': typeof AuthenticatedRequisicoesRoute
@@ -97,6 +105,7 @@ export interface FileRoutesByTo {
   '/compras': typeof AuthenticatedComprasRoute
   '/frotas': typeof AuthenticatedFrotasRoute
   '/guincho': typeof AuthenticatedGuinchoRoute
+  '/mapa-cotacao': typeof AuthenticatedMapaCotacaoRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/requisicoes': typeof AuthenticatedRequisicoesRoute
@@ -111,6 +120,7 @@ export interface FileRoutesById {
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
   '/_authenticated/frotas': typeof AuthenticatedFrotasRoute
   '/_authenticated/guincho': typeof AuthenticatedGuinchoRoute
+  '/_authenticated/mapa-cotacao': typeof AuthenticatedMapaCotacaoRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
   '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
   '/_authenticated/requisicoes': typeof AuthenticatedRequisicoesRoute
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/compras'
     | '/frotas'
     | '/guincho'
+    | '/mapa-cotacao'
     | '/metas'
     | '/pedidos'
     | '/requisicoes'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/compras'
     | '/frotas'
     | '/guincho'
+    | '/mapa-cotacao'
     | '/metas'
     | '/pedidos'
     | '/requisicoes'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compras'
     | '/_authenticated/frotas'
     | '/_authenticated/guincho'
+    | '/_authenticated/mapa-cotacao'
     | '/_authenticated/metas'
     | '/_authenticated/pedidos'
     | '/_authenticated/requisicoes'
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMetasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/mapa-cotacao': {
+      id: '/_authenticated/mapa-cotacao'
+      path: '/mapa-cotacao'
+      fullPath: '/mapa-cotacao'
+      preLoaderRoute: typeof AuthenticatedMapaCotacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/guincho': {
       id: '/_authenticated/guincho'
       path: '/guincho'
@@ -249,6 +269,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
   AuthenticatedFrotasRoute: typeof AuthenticatedFrotasRoute
   AuthenticatedGuinchoRoute: typeof AuthenticatedGuinchoRoute
+  AuthenticatedMapaCotacaoRoute: typeof AuthenticatedMapaCotacaoRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
   AuthenticatedPedidosRoute: typeof AuthenticatedPedidosRoute
   AuthenticatedRequisicoesRoute: typeof AuthenticatedRequisicoesRoute
@@ -261,6 +282,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedComprasRoute: AuthenticatedComprasRoute,
   AuthenticatedFrotasRoute: AuthenticatedFrotasRoute,
   AuthenticatedGuinchoRoute: AuthenticatedGuinchoRoute,
+  AuthenticatedMapaCotacaoRoute: AuthenticatedMapaCotacaoRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedPedidosRoute: AuthenticatedPedidosRoute,
   AuthenticatedRequisicoesRoute: AuthenticatedRequisicoesRoute,

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearInvalidAuthSession } from "@/lib/auth-session";
 
 export type AppRole = "admin" | "editor" | "viewer";
-export type TabName = "dashboard" | "compras" | "metas" | "frotas" | "combustivel" | "guincho" | "requisicoes" | "pedidos";
+export type TabName = "dashboard" | "compras" | "metas" | "frotas" | "combustivel" | "guincho" | "requisicoes" | "pedidos" | "mapa-cotacao";
 export type DashboardWidget =
   | "kpis"
   | "gasto-meta"
@@ -131,7 +131,7 @@ export function useCurrentUserAccess() {
   const canEdit = (tab: TabName) => isAdmin || isEditor || !!perms[tab];
   const canView = (tab: TabName) => {
     if (isAdmin || isEditor) return true;
-    if (tab === "dashboard" || tab === "pedidos") return true;
+    if (tab === "dashboard" || tab === "pedidos" || tab === "mapa-cotacao") return true;
     return perms[tab] !== undefined;
   };
 
