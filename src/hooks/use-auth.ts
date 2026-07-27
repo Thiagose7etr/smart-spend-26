@@ -131,7 +131,7 @@ export function useCurrentUserAccess() {
   const canEdit = (tab: TabName) => isAdmin || isEditor || !!perms[tab];
   const canView = (tab: TabName) => {
     if (isAdmin || isEditor) return true;
-    if (tab === "dashboard" || tab === "pedidos" || tab === "mapa-cotacao") return true;
+    if (tab === "dashboard") return true;
     return perms[tab] !== undefined;
   };
 

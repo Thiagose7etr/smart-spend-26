@@ -28,7 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2 } from "lucide-react";
+import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CATEGORIAS, fmtBRL, sbFrom, formatSupplierName, type Requisicao } from "@/lib/db-types";
@@ -60,11 +60,43 @@ interface FornecedorFaturamento {
 
 function MapaCotacaoPage() {
   const qc = useQueryClient();
-  const { access } = useCurrentUserAccess();
+  const { access, loading: accessLoading } = useCurrentUserAccess();
   const canEdit = access?.canEdit("mapa-cotacao") ?? false;
 
   const [buscaReq, setBuscaReq] = useState("");
   const [numeroPesquisado, setNumeroPesquisado] = useState<number | null>(null);
+
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões...</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access?.canView("mapa-cotacao")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg bg-card/60 backdrop-blur-md">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Mapa de Cotação</strong>. Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
 
   // Carrega fornecedores únicos do histórico para autocomplete
   const { data: compras = [] } = useQuery({

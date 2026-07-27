@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Hammer } from "lucide-react";
+import { FileText, Hammer, ShieldAlert } from "lucide-react";
+import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/pedidos")({
   component: PedidosPage,
@@ -14,6 +15,40 @@ export const Route = createFileRoute("/_authenticated/pedidos")({
 });
 
 function PedidosPage() {
+  const { access, loading: accessLoading } = useCurrentUserAccess();
+
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões...</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access?.canView("pedidos")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg bg-card/60 backdrop-blur-md">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Pedidos de compra</strong>. Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="flex flex-col gap-4 mb-6">
