@@ -46,6 +46,8 @@ const TABS: { key: TabName; label: string }[] = [
   { key: "combustivel", label: "Combustível" },
   { key: "guincho", label: "Guincho" },
   { key: "requisicoes", label: "Requisições" },
+  { key: "mapa-cotacao", label: "Mapa de Cotação" },
+  { key: "pedidos", label: "Pedidos de compra" },
 ];
 
 type ProfileRow = {
