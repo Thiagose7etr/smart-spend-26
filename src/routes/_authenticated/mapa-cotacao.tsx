@@ -28,7 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save } from "lucide-react";
+import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save, FolderOpen } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CATEGORIAS, fmtBRL, sbFrom, formatSupplierName, type Requisicao } from "@/lib/db-types";
@@ -82,7 +82,7 @@ function MapaCotacaoPage() {
   }, [compras]);
 
   // Carrega a requisição buscada
-  const { data: requisicao, isLoading: loadingReq, error: errorReq } = useQuery({
+  const { data: requisicao, isLoading: loadingReq } = useQuery({
     queryKey: ["requisicao-cotacao", numeroPesquisado],
     enabled: numeroPesquisado !== null,
     queryFn: async () => {
@@ -93,6 +93,20 @@ function MapaCotacaoPage() {
 
       if (error) throw error;
       return data as Requisicao | null;
+    },
+  });
+
+  // Carrega todas as requisições em rascunho (cotacao não é nula e status é pendente)
+  const { data: rascunhos = [], isLoading: loadingRascunhos } = useQuery({
+    queryKey: ["requisicoes-rascunhos"],
+    queryFn: async () => {
+      const { data, error } = await sbFrom("requisicoes")
+        .select("*")
+        .eq("status", "pendente")
+        .not("cotacao", "is", null)
+        .order("numero", { ascending: false });
+      if (error) throw error;
+      return data as Requisicao[];
     },
   });
 
@@ -164,6 +178,13 @@ function MapaCotacaoPage() {
     }
     setNumeroPesquisado(num);
     // Limpa preços locais ao buscar para evitar flashing de dados antigos
+    setPrecos({});
+    setVencedoresManuais({});
+  };
+
+  const handleLimpar = () => {
+    setBuscaReq("");
+    setNumeroPesquisado(null);
     setPrecos({});
     setVencedoresManuais({});
   };
@@ -323,6 +344,7 @@ function MapaCotacaoPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["requisicao-cotacao"] });
+      qc.invalidateQueries({ queryKey: ["requisicoes-rascunhos"] });
       toast.success("Rascunho de cotação salvo no banco!");
     },
     onError: (e: any) => {
@@ -330,20 +352,26 @@ function MapaCotacaoPage() {
     },
   });
 
-  // Mutation para excluir rascunho
+  // Mutation para excluir cotação
   const excluirRascunhoMutation = useMutation({
-    mutationFn: async () => {
-      if (!requisicao) return;
+    mutationFn: async (reqId?: string) => {
+      const idToUse = reqId || requisicao?.id;
+      if (!idToUse) return;
       const { error } = await sbFrom("requisicoes")
         .update({ cotacao: null })
-        .eq("id", requisicao.id);
+        .eq("id", idToUse);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["requisicao-cotacao"] });
-      setFornecedores(["FORNECEDOR A", "FORNECEDOR B"]);
-      setPrecos({});
-      setVencedoresManuais({});
+      qc.invalidateQueries({ queryKey: ["requisicoes-rascunhos"] });
+      
+      const idToUse = variables || requisicao?.id;
+      if (idToUse === requisicao?.id) {
+        setFornecedores(["FORNECEDOR A", "FORNECEDOR B"]);
+        setPrecos({});
+        setVencedoresManuais({});
+      }
       toast.success("Cotação excluída com sucesso!");
     },
     onError: (e: any) => {
@@ -437,6 +465,7 @@ function MapaCotacaoPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["requisicoes"] });
       qc.invalidateQueries({ queryKey: ["requisicao-cotacao"] });
+      qc.invalidateQueries({ queryKey: ["requisicoes-rascunhos"] });
       qc.invalidateQueries({ queryKey: ["compras"] });
       setModalGerarOpen(false);
       toast.success("Compras geradas e Requisição marcada como COMPRADA!");
@@ -663,23 +692,133 @@ function MapaCotacaoPage() {
                   />
                 </div>
               </div>
-              <Button
-                type="submit"
-                disabled={loadingReq}
-                className="text-primary-foreground border-0"
-                style={{ background: "var(--gradient-primary)" }}
-              >
-                {loadingReq ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Buscando…
-                  </>
-                ) : (
-                  "Buscar Requisição"
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  disabled={loadingReq}
+                  className="text-primary-foreground border-0"
+                  style={{ background: "var(--gradient-primary)" }}
+                >
+                  {loadingReq ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Buscando…
+                    </>
+                  ) : (
+                    "Buscar Requisição"
+                  )}
+                </Button>
+                {numeroPesquisado !== null && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleLimpar}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Limpar
+                  </Button>
                 )}
-              </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
+
+        {/* Lista de Rascunhos (quando nenhuma requisição está aberta) */}
+        {!requisicao && (
+          <Card>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-primary" />
+                Cotações Salvas em Rascunho
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {loadingRascunhos ? (
+                <div className="flex justify-center py-6 text-sm text-muted-foreground animate-pulse">
+                  Carregando rascunhos...
+                </div>
+              ) : rascunhos.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground italic">
+                  Nenhuma cotação em rascunho pendente no momento.
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-border/40 rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-[100px] text-center">Nº Req</TableHead>
+                        <TableHead className="w-[120px]">Data</TableHead>
+                        <TableHead>Solicitante</TableHead>
+                        <TableHead>Centro de Custo</TableHead>
+                        <TableHead>Fornecedores Cotados</TableHead>
+                        <TableHead className="w-[160px] text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rascunhos.map((r) => {
+                        const forns = r.cotacao?.fornecedores || [];
+                        return (
+                          <TableRow key={r.id} className="hover:bg-[#0c0d10]/20">
+                            <TableCell className="text-center font-bold font-mono text-zinc-100 text-xs">
+                              {r.numero}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(r.data).toLocaleDateString("pt-BR")}
+                            </TableCell>
+                            <TableCell className="text-xs font-medium text-zinc-200">
+                              {r.solicitante}
+                            </TableCell>
+                            <TableCell className="text-xs text-zinc-300">
+                              {r.centro_custo}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {forns.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {forns.map((f: string) => (
+                                    <Badge key={f} variant="outline" className="text-[10px] py-0 border-border/60">
+                                      {f}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                "Nenhum"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right p-2">
+                              <div className="flex gap-1.5 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setBuscaReq(String(r.numero));
+                                    setNumeroPesquisado(r.numero);
+                                  }}
+                                  className="h-8 text-xs"
+                                >
+                                  Abrir Cotação
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    excluirRascunhoMutation.mutate(r.id);
+                                  }}
+                                  title="Excluir Rascunho"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {requisicao === null && numeroPesquisado !== null && (
           <div className="text-center py-10 bg-[#0c0d10]/40 rounded-lg border border-border/20 text-muted-foreground text-sm">
@@ -894,7 +1033,7 @@ function MapaCotacaoPage() {
                                               ? "text-emerald-400 font-semibold"
                                               : "text-muted-foreground/60 hover:text-emerald-400"
                                           }`}
-                                          title={isWin ? "Vencedor selecionado" : "Marcar como vencedor"}
+                                          title={isWin ? "Vendedor vencedor selecionado" : "Selecionar como vencedor deste item"}
                                         >
                                           {isWin ? (
                                             <CheckCircle2 className="h-3.5 w-3.5 fill-emerald-500/20 text-emerald-400 animate-in fade-in zoom-in-75 duration-200" />
