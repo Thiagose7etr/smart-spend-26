@@ -57,6 +57,7 @@ export type Requisicao = {
   created_at?: string;
   updated_at?: string;
   itens?: RequisicaoItem[];
+  cotacao?: any;
 };
 
 

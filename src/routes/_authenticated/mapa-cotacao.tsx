@@ -28,8 +28,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CATEGORIAS, fmtBRL, sbFrom, formatSupplierName, type Requisicao } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
@@ -66,38 +66,6 @@ function MapaCotacaoPage() {
   const [buscaReq, setBuscaReq] = useState("");
   const [numeroPesquisado, setNumeroPesquisado] = useState<number | null>(null);
 
-  if (accessLoading) {
-    return (
-      <AppShell>
-        <div className="flex h-[50vh] items-center justify-center">
-          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões...</div>
-        </div>
-      </AppShell>
-    );
-  }
-
-  if (!access?.canView("mapa-cotacao")) {
-    return (
-      <AppShell>
-        <div className="flex h-[60vh] items-center justify-center">
-          <Card className="max-w-md w-full border-border/60 shadow-lg bg-card/60 backdrop-blur-md">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
-                <ShieldAlert className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-4 pt-2">
-              <p className="text-sm text-muted-foreground">
-                Você não tem permissão para acessar a aba de <strong>Mapa de Cotação</strong>. Entre em contato com o administrador do sistema para solicitar acesso.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </AppShell>
-    );
-  }
-
   // Carrega fornecedores únicos do histórico para autocomplete
   const { data: compras = [] } = useQuery({
     queryKey: ["compras", "all-fornecedores"],
@@ -131,12 +99,61 @@ function MapaCotacaoPage() {
   // Estados da Matriz de Cotação
   const [fornecedores, setFornecedores] = useState<string[]>(["FORNECEDOR A", "FORNECEDOR B"]);
   const [precos, setPrecos] = useState<CotacaoPreco>({});
+  const [vencedoresManuais, setVencedoresManuais] = useState<{ [itemId: string]: string }>({});
   const [showSug, setShowSug] = useState<{ [colIndex: number]: boolean }>({});
   const [sugQuery, setSugQuery] = useState<{ [colIndex: number]: string }>({});
 
   // Configuração para geração de compras/lançamentos
   const [modalGerarOpen, setModalGerarOpen] = useState(false);
   const [faturamentos, setFaturamentos] = useState<{ [fornecedor: string]: FornecedorFaturamento }>({});
+
+  // Carrega rascunho de cotação se houver no banco
+  useEffect(() => {
+    if (requisicao) {
+      if (requisicao.cotacao) {
+        const cot = requisicao.cotacao;
+        setFornecedores(cot.fornecedores || ["FORNECEDOR A", "FORNECEDOR B"]);
+        setPrecos(cot.precos || {});
+        setVencedoresManuais(cot.vencedoresManuais || {});
+      } else {
+        setFornecedores(["FORNECEDOR A", "FORNECEDOR B"]);
+        setPrecos({});
+        setVencedoresManuais({});
+      }
+    }
+  }, [requisicao]);
+
+  if (accessLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="text-sm text-muted-foreground animate-pulse">Carregando permissões...</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!access?.canView("mapa-cotacao")) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Card className="max-w-md w-full border-border/60 shadow-lg bg-card/60 backdrop-blur-md">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 text-destructive flex items-center justify-center mb-4">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-bold">Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Você não tem permissão para acessar a aba de <strong>Mapa de Cotação</strong>. Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
 
   const handleBuscar = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,8 +163,9 @@ function MapaCotacaoPage() {
       return;
     }
     setNumeroPesquisado(num);
-    // Limpa preços ao carregar nova requisição
+    // Limpa preços locais ao buscar para evitar flashing de dados antigos
     setPrecos({});
+    setVencedoresManuais({});
   };
 
   const handleAddFornecedor = () => {
@@ -175,6 +193,15 @@ function MapaCotacaoPage() {
       }
     });
     setPrecos(newPrecos);
+
+    // Remove referências de vencedores manuais para o fornecedor excluído
+    const newVencedores = { ...vencedoresManuais };
+    Object.keys(newVencedores).forEach((itemId) => {
+      if (newVencedores[itemId] === nameToRemove) {
+        delete newVencedores[itemId];
+      }
+    });
+    setVencedoresManuais(newVencedores);
   };
 
   const handleUpdateFornecedorName = (index: number, name: string) => {
@@ -198,6 +225,15 @@ function MapaCotacaoPage() {
       }
     });
     setPrecos(newPrecos);
+
+    // Atualiza vencedor manual se necessário
+    const newVencedores = { ...vencedoresManuais };
+    Object.keys(newVencedores).forEach((itemId) => {
+      if (newVencedores[itemId] === oldName) {
+        newVencedores[itemId] = newName;
+      }
+    });
+    setVencedoresManuais(newVencedores);
   };
 
   const handleUpdatePreco = (itemId: string, fornecedor: string, value: string) => {
@@ -214,10 +250,21 @@ function MapaCotacaoPage() {
   // Cálculos da Matriz
   const itens = requisicao?.itens ?? [];
 
-  // Menor preço por item (linha)
-  const menorPrecoPorItem = useMemo(() => {
+  // Vencedores por item (com suporte a manual override)
+  const resolvedVencedores = useMemo(() => {
     const map: { [itemId: string]: { fornecedor: string; preco: number } | null } = {};
     itens.forEach((it) => {
+      // 1. Verifica escolha manual
+      const manualForn = vencedoresManuais[it.id];
+      if (manualForn && fornecedores.includes(manualForn)) {
+        const p = precos[it.id]?.[manualForn] ?? 0;
+        if (p > 0) {
+          map[it.id] = { fornecedor: manualForn, preco: p };
+          return;
+        }
+      }
+
+      // 2. Fallback para menor preço
       let minPreco = Infinity;
       let minForn = "";
       fornecedores.forEach((forn) => {
@@ -230,7 +277,7 @@ function MapaCotacaoPage() {
       map[it.id] = minForn ? { fornecedor: minForn, preco: minPreco } : null;
     });
     return map;
-  }, [itens, fornecedores, precos]);
+  }, [itens, fornecedores, precos, vencedoresManuais]);
 
   // Totais por fornecedor (coluna)
   const totaisPorFornecedor = useMemo(() => {
@@ -260,22 +307,66 @@ function MapaCotacaoPage() {
     return minForn ? { fornecedor: minForn, total: minTotal } : null;
   }, [fornecedores, totaisPorFornecedor]);
 
+  // Mutation para salvar rascunho
+  const salvarRascunhoMutation = useMutation({
+    mutationFn: async () => {
+      if (!requisicao) return;
+      const cotacaoPayload = {
+        fornecedores,
+        precos,
+        vencedoresManuais,
+      };
+      const { error } = await sbFrom("requisicoes")
+        .update({ cotacao: cotacaoPayload })
+        .eq("id", requisicao.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["requisicao-cotacao"] });
+      toast.success("Rascunho de cotação salvo no banco!");
+    },
+    onError: (e: any) => {
+      toast.error("Erro ao salvar rascunho: " + e.message);
+    },
+  });
+
+  // Mutation para excluir rascunho
+  const excluirRascunhoMutation = useMutation({
+    mutationFn: async () => {
+      if (!requisicao) return;
+      const { error } = await sbFrom("requisicoes")
+        .update({ cotacao: null })
+        .eq("id", requisicao.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["requisicao-cotacao"] });
+      setFornecedores(["FORNECEDOR A", "FORNECEDOR B"]);
+      setPrecos({});
+      setVencedoresManuais({});
+      toast.success("Cotação excluída com sucesso!");
+    },
+    onError: (e: any) => {
+      toast.error("Erro ao excluir cotação: " + e.message);
+    },
+  });
+
   // Abre o modal de Gerar Compras e inicializa as variáveis de faturamento
   const openGerarCompras = () => {
     if (!requisicao) return;
     const initialFaturamentos: { [fornecedor: string]: FornecedorFaturamento } = {};
     
-    // Identifica fornecedores ganhadores de pelo menos um item
+    // Identifica fornecedores ganhadores selecionados
     const ganhadores = new Set<string>();
     itens.forEach((it) => {
-      const win = menorPrecoPorItem[it.id];
+      const win = resolvedVencedores[it.id];
       if (win) {
         ganhadores.add(win.fornecedor);
       }
     });
 
     if (ganhadores.size === 0) {
-      toast.error("Preencha as cotações antes de gerar as compras.");
+      toast.error("Preencha as cotações e selecione os vencedores antes de gerar as compras.");
       return;
     }
 
@@ -310,7 +401,7 @@ function MapaCotacaoPage() {
       const anoNum = parseInt(parts[0], 10);
 
       itens.forEach((it) => {
-        const win = menorPrecoPorItem[it.id];
+        const win = resolvedVencedores[it.id];
         if (win) {
           const forn = win.fornecedor;
           const fat = faturamentos[forn];
@@ -363,7 +454,7 @@ function MapaCotacaoPage() {
 
     let rowsHtml = "";
     itens.forEach((it) => {
-      const win = menorPrecoPorItem[it.id];
+      const win = resolvedVencedores[it.id];
       let cellsHtml = "";
       fornecedores.forEach((forn) => {
         const p = precos[it.id]?.[forn] ?? 0;
@@ -635,10 +726,46 @@ function MapaCotacaoPage() {
             <Card>
               <CardHeader className="pb-3 border-b border-border/40 flex flex-row flex-wrap items-center justify-between gap-4">
                 <CardTitle className="text-base">Comparativo de Preços</CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={handleAddFornecedor}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Fornecedor
                   </Button>
+                  {canEdit && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-primary/50 text-primary hover:bg-primary/10"
+                        onClick={() => salvarRascunhoMutation.mutate()}
+                        disabled={salvarRascunhoMutation.isPending}
+                      >
+                        {salvarRascunhoMutation.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <Save className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        Salvar Rascunho
+                      </Button>
+                      {requisicao.cotacao && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                          onClick={() => excluirRascunhoMutation.mutate()}
+                          disabled={excluirRascunhoMutation.isPending}
+                        >
+                          {excluirRascunhoMutation.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          )}
+                          Excluir Rascunho
+                        </Button>
+                      )}
+                    </>
+                  )}
                   <Button type="button" variant="outline" size="sm" onClick={handleExportExcel}>
                     <FileDown className="h-3.5 w-3.5 mr-1" /> Excel
                   </Button>
@@ -729,7 +856,7 @@ function MapaCotacaoPage() {
                     </TableHeader>
                     <TableBody>
                       {itens.map((it) => {
-                        const win = menorPrecoPorItem[it.id];
+                        const win = resolvedVencedores[it.id];
 
                         return (
                           <TableRow key={it.id} className="hover:bg-[#0c0d10]/20">
@@ -757,13 +884,36 @@ function MapaCotacaoPage() {
                                         }`}
                                       />
                                     </div>
-                                    {Number(precoVal) > 0 && (
-                                      <div className={`text-[10px] text-right font-mono px-1 ${
-                                        isWin ? "text-emerald-400/80 font-medium" : "text-muted-foreground"
-                                      }`}>
-                                        Sub: {fmtBRL(Number(precoVal) * it.quantidade)}
-                                      </div>
-                                    )}
+                                    <div className="flex items-center justify-between px-1 min-h-[22px]">
+                                      {Number(precoVal) > 0 ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setVencedoresManuais(prev => ({ ...prev, [it.id]: forn }))}
+                                          className={`flex items-center gap-1 transition-all ${
+                                            isWin
+                                              ? "text-emerald-400 font-semibold"
+                                              : "text-muted-foreground/60 hover:text-emerald-400"
+                                          }`}
+                                          title={isWin ? "Vencedor selecionado" : "Marcar como vencedor"}
+                                        >
+                                          {isWin ? (
+                                            <CheckCircle2 className="h-3.5 w-3.5 fill-emerald-500/20 text-emerald-400 animate-in fade-in zoom-in-75 duration-200" />
+                                          ) : (
+                                            <span className="h-3 w-3 rounded-full border border-muted-foreground/40 hover:border-emerald-400" />
+                                          )}
+                                          <span className="text-[9px] uppercase tracking-wider">vencer</span>
+                                        </button>
+                                      ) : (
+                                        <div />
+                                      )}
+                                      {Number(precoVal) > 0 && (
+                                        <div className={`text-[10px] font-mono ${
+                                          isWin ? "text-emerald-400/80 font-medium" : "text-muted-foreground"
+                                        }`}>
+                                          Sub: {fmtBRL(Number(precoVal) * it.quantidade)}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </TableCell>
                               );
