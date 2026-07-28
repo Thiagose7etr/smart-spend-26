@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THcontrol — Controle de Compras e Frota</title>
+  <meta name="description" content="Plataforma completa para gestão de compras, frota, combustível e metas. Inteligência Artificial integrada para automação de NF.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a2420;
+      --bg-elevated: #1f2b26;
+      --bg-card: #232e2a;
+      --bg-card-hover: #2a3832;
+      --border: #3a4a44;
+      --border-light: #2e3d36;
+      --text: #f0f5f2;
+      --text-muted: #9ab0a6;
+      --primary: #3baa6c;
+      --primary-light: #4cc47e;
+      --primary-dark: #2d8a56;
+      --primary-glow: rgba(59,170,108,0.25);
+      --accent: #d4a843;
+      --accent-light: #e0bc5e;
+      --accent-glow: rgba(212,168,67,0.2);
+      --destructive: #d44a4a;
+      --success: #3baa6c;
+      --gradient-primary: linear-gradient(135deg, #3baa6c 0%, #2d8a56 100%);
+      --gradient-accent: linear-gradient(135deg, #d4a843 0%, #c49530 100%);
+      --gradient-hero: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59,170,108,0.12) 0%, transparent 60%);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.25);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.3);
+      --shadow-glow: 0 0 60px -10px rgba(59,170,108,0.3);
+      --radius: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== NAV ===== */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(20px);
+      background: rgba(26,36,32,0.85);
+      border-bottom: 1px solid var(--border-light);
+      transition: all 0.3s ease;
+    }
+    .nav.scrolled {
+      padding: 0.65rem 2rem;
+      background: rgba(26,36,32,0.95);
+      box-shadow: var(--shadow-md);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.2rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .nav-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.8rem;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(59,170,108,0.3);
+    }
+    .nav-links { display: flex; align-items: center; gap: 2rem; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--gradient-primary) !important;
+      color: #fff !important;
+      padding: 0.55rem 1.3rem;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--primary-glow); }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .hamburger span {
+      width: 24px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+      background: var(--gradient-hero);
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,170,108,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-content { max-width: 820px; position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 1.1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.6s ease;
+    }
+    .hero-badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+      animation: pulse-dot 2s infinite;
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.2rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.6s ease 0.1s both;
+    }
+    .hero h1 .highlight {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto 2.5rem;
+      animation: fadeInUp 0.6s ease 0.2s both;
+    }
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeInUp 0.6s ease 0.3s both;
+    }
+    .btn {
+      padding: 0.85rem 2rem;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: #fff;
+      box-shadow: 0 4px 24px var(--primary-glow);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(59,170,108,0.4); }
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-card-hover); border-color: var(--border); }
+    .btn-accent {
+      background: var(--gradient-accent);
+      color: #1a2420;
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+    .btn-accent:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(212,168,67,0.35); }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      max-width: 880px;
+      margin: -2rem auto 0;
+      position: relative;
+      z-index: 2;
+      animation: fadeInUp 0.6s ease 0.4s both;
+    }
+    .stat-item {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    /* ===== SECTIONS ===== */
+    section { padding: 6rem 2rem; }
+    .section-header { text-align: center; margin-bottom: 4rem; }
+    .section-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 6px;
+      background: rgba(59,170,108,0.1);
+      border: 1px solid rgba(59,170,108,0.15);
+    }
+    .section-title {
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto;
+    }
+
+    /* ===== FEATURES GRID ===== */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      padding: 2.5rem 2rem;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .feature-card:hover { background: var(--bg-card-hover); }
+    .feature-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-card p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.7; }
+
+    /* ===== AI SECTION ===== */
+    .ai-section {
+      background: linear-gradient(180deg, var(--bg) 0%, rgba(59,170,108,0.04) 50%, var(--bg) 100%);
+    }
+    .ai-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+    .ai-text h2 {
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+    }
+    .ai-text h2 .highlight {
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .ai-text p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 1rem; line-height: 1.7; }
+    .ai-features { list-style: none; }
+    .ai-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.7rem 0;
+      font-size: 0.95rem;
+    }
+    .ai-features li .check {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(59,170,108,0.15);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .ai-visual {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .ai-visual::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gradient-primary);
+    }
+    .ai-demo-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .ai-demo-header .camera-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(59,170,108,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .ai-demo-steps { display: flex; flex-direction: column; gap: 0.85rem; }
+    .ai-step {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.1rem;
+      background: rgba(59,170,108,0.04);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-light);
+      transition: all 0.2s;
+    }
+    .ai-step:hover { border-color: var(--border); background: rgba(59,170,108,0.06); }
+    .ai-step-num {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--gradient-primary);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ai-step-text { font-size: 0.9rem; }
+    .ai-step-text strong { color: var(--text); }
+    .ai-step-text span { color: var(--text-muted); }
+
+    /* ===== MODULES ===== */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .module-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg), 0 0 40px rgba(59,170,108,0.08);
+    }
+    .module-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      background: var(--gradient-primary);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .module-card:hover::before { opacity: 1; }
+    .module-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .module-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .module-card p { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.6; }
+    .module-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .module-tag {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      background: rgba(59,170,108,0.08);
+      color: var(--primary);
+      border: 1px solid rgba(59,170,108,0.12);
+      font-weight: 500;
+    }
+
+    /* ===== SECURITY ===== */
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .security-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    .security-card:hover {
+      border-color: var(--border);
+      transform: translateY(-2px);
+    }
+    .security-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      margin: 0 auto 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .security-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .security-card p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* ===== TECH STACK ===== */
+    .tech-section {
+      background: var(--bg-elevated);
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .tech-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .tech-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem 1.2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .tech-item:hover { border-color: var(--primary); color: var(--text); }
+    .tech-item .tech-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ===== PRICING ===== */
+    .pricing-section {
+      background: linear-gradient(180deg, var(--bg) 0%, rgba(59,170,108,0.03) 50%, var(--bg) 100%);
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .pricing-card.featured {
+      border-color: var(--primary);
+      transform: scale(1.04);
+      box-shadow: var(--shadow-glow);
+    }
+    .pricing-card.featured::before {
+      content: 'Mais Popular';
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gradient-primary);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pricing-card:hover { transform: translateY(-4px); }
+    .pricing-card.featured:hover { transform: scale(1.04) translateY(-4px); }
+    .pricing-name { font-size: 1rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .pricing-price {
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin-bottom: 0.25rem;
+    }
+    .pricing-price .currency { font-size: 1.25rem; font-weight: 600; vertical-align: top; color: var(--text-muted); }
+    .pricing-period { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 2rem; }
+    .pricing-features { list-style: none; flex: 1; margin-bottom: 2rem; }
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .pricing-features li .icon { color: var(--primary); font-size: 0.85rem; font-weight: 700; }
+    .pricing-btn {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+    .pricing-btn-primary {
+      background: var(--gradient-primary);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    .pricing-btn-primary:hover { box-shadow: 0 8px 30px rgba(59,170,108,0.4); transform: translateY(-1px); }
+    .pricing-btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .pricing-btn-secondary:hover { background: var(--bg-card-hover); border-color: var(--primary); }
+
+    /* ===== CTA ===== */
+    .cta-section {
+      text-align: center;
+      padding: 8rem 2rem;
+      position: relative;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,170,108,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .cta-section p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+      background: var(--bg-elevated);
+    }
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .footer-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.65rem;
+      color: #fff;
+    }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--primary); }
+    .footer-copy { color: var(--text-muted); font-size: 0.8rem; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--primary-glow); }
+      50% { opacity: 0.5; box-shadow: 0 0 16px var(--primary-glow); }
+    }
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .modules-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+      .pricing-card.featured { transform: none; }
+      .pricing-card.featured:hover { transform: translateY(-4px); }
+      .ai-content { grid-template-columns: 1fr; gap: 2rem; }
+      .security-grid { grid-template-columns: 1fr; max-width: 400px; }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-links.active {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(26,36,32,0.97);
+        backdrop-filter: blur(20px);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border);
+        gap: 1rem;
+      }
+      .hamburger { display: flex; }
+      .hero { padding: 7rem 1.5rem 3rem; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); margin-left: 1rem; margin-right: 1rem; }
+      .features-grid { grid-template-columns: 1fr; margin-left: 0.5rem; margin-right: 0.5rem; }
+      .modules-grid { grid-template-columns: 1fr; }
+      section { padding: 4rem 1.5rem; }
+      .footer-content { flex-direction: column; text-align: center; }
+    }
+
+    @media (max-width: 480px) {
+      .stat-item { padding: 1rem; }
+      .stat-number { font-size: 1.35rem; }
+      .hero-buttons { flex-direction: column; align-items: center; }
+      .btn { width: 100%; justify-content: center; }
+      .tech-grid { gap: 0.6rem; }
+      .tech-item { font-size: 0.78rem; padding: 0.55rem 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <a href="#" class="nav-brand">
+      <div class="nav-logo">TH</div>
+      THcontrol
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="#features">Recursos</a>
+      <a href="#modules">Módulos</a>
+      <a href="#security">Segurança</a>
+      <a href="#pricing">Planos</a>
+      <a href="#cta" class="nav-cta">Solicitar Demo</a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Plataforma completa para gestão empresarial
+      </div>
+      <h1>
+        Controle total da sua<br>
+        <span class="highlight">frota e compras</span>
+      </h1>
+      <p>
+        Dashboard inteligente com IA integrada, automação de notas fiscais,
+        projeção de combustível e metas em tempo real. Tudo em um só lugar.
+      </p>
+      <div class="hero-buttons">
+        <a href="#cta" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          Comece Agora
+        </a>
+        <a href="#features" class="btn btn-secondary">Ver Recursos</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-number">7</div>
+      <div class="stat-label">Módulos Integrados</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">25</div>
+      <div class="stat-label">Categorias de Custo</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">IA</div>
+      <div class="stat-label">OCR de NF Automático</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">RLS</div>
+      <div class="stat-label">Segurança por Linha</div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-header reveal">
+      <div class="section-tag">Recursos</div>
+      <h2 class="section-title">Tudo que sua empresa precisa</h2>
+      <p class="section-desc">Uma plataforma completa que substitui planilhas, WhatsApp e sistemas legados.</p>
+    </div>
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(212,168,67,0.12);">📸</div>
+        <h3>OCR com Inteligência Artificial</h3>
+        <p>Tire uma foto da nota fiscal e a IA extrai automaticamente fornecedor, itens, valores e categoriza o gasto.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(59,170,108,0.12);">📊</div>
+        <h3>Dashboard Executivo</h3>
+        <p>Gráficos interativos de gasto x meta, categorias, fornecedores e evolução mensal. Arrastável e personalizável.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(59,170,108,0.12);">⛽</div>
+        <h3>Projeção de Combustível</h3>
+        <p>Calcula automaticamente os dias de estoque restante com base no consumo médio diário de cada tipo de diesel.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(212,168,67,0.12);">🎯</div>
+        <h3>Metas vs Realizado</h3>
+        <p>Defina metas mensais por categoria e acompanhe em tempo real o percentual de utilização com barras de progresso.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(59,170,108,0.12);">📋</div>
+        <h3>Importação de Excel</h3>
+        <p>Importe planilhas .xlsx com detecção inteligente de colunas, normalização de headers e detecção de duplicatas.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(212,168,67,0.12);">🔐</div>
+        <h3>Controle de Acesso Granular</h3>
+        <p>Permissões por aba, por widget, por função (Admin/Editor/Viewer). Tudo protegido no nível do banco de dados.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI SECTION -->
+  <section class="ai-section" id="ai">
+    <div class="ai-content reveal">
+      <div class="ai-text">
+        <div class="section-tag">Inteligência Artificial</div>
+        <h2>Escaneie NFs com a câmera do celular</h2>
+        <p>
+          Chega de digitar notas fiscais manualmente. Aponte a câmera, tire uma foto
+          e a IA faz todo o trabalho pesado para você.
+        </p>
+        <ul class="ai-features">
+          <li>
+            <span class="check">✓</span>
+            <span>Extração automática de NF, fornecedor, data e valores</span>
+          </li>
+          <li>
+            <span class="check">✓</span>
+            <span>Categorização inteligente em 25 categorias de custo</span>
+          </li>
+          <li>
+            <span class="check">✓</span>
+            <span>Preenchimento automático do formulário de compra</span>
+          </li>
+          <li>
+            <span class="check">✓</span>
+            <span>Funciona direto pelo celular — sem necessidade de scanner</span>
+          </li>
+        </ul>
+      </div>
+      <div class="ai-visual">
+        <div class="ai-demo-header">
+          <div class="camera-icon">📷</div>
+          <div>
+            <div style="font-weight:600;font-size:0.95rem;">OCR Automático</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">Google Gemini 2.5 Flash</div>
+          </div>
+        </div>
+        <div class="ai-demo-steps">
+          <div class="ai-step">
+            <div class="ai-step-num">1</div>
+            <div class="ai-step-text"><strong>Tire a foto</strong> <span>da nota fiscal com a câmera</span></div>
+          </div>
+          <div class="ai-step">
+            <div class="ai-step-num">2</div>
+            <div class="ai-step-text"><strong>IA extrai</strong> <span>todos os dados automaticamente</span></div>
+          </div>
+          <div class="ai-step">
+            <div class="ai-step-num">3</div>
+            <div class="ai-step-text"><strong>Revise e salve</strong> <span>com um único clique</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section id="modules">
+    <div class="section-header reveal">
+      <div class="section-tag">Módulos</div>
+      <h2 class="section-title">7 módulos integrados</h2>
+      <p class="section-desc">Cada módulo foi desenhado para resolver um problema real do dia a dia.</p>
+    </div>
+    <div class="modules-grid reveal">
+      <div class="module-card">
+        <div class="module-icon" style="background:rgba(59,170,108,0.12);">📊</div>
+        <h3>Dashboard</h3>
+        <p>Painel executivo com KPIs, gráficos interativos e layout personalizável por usuário.</p>
+        <div class="module-tags">
+          <span class="module-tag">Gráficos</span>
+          <span class="module-tag">KPIs</span>
+          <span class="module-tag">Drag & Drop</span>
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon" style="background:rgba(212,168,67,0.12);">🛒</div>
+        <h3>Compras</h3>
+        <p>Registro fiscal completo com OCR, importação Excel, exportação CSV e 25 categorias.</p>
+        <div class="module-tags">
+          <span class="module-tag">OCR IA</span>
+          <span class="module-tag">Excel</span>
+          <span class="module-tag">25 Categorias</span>
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon" style="background:rgba(59,170,108,0.12);">🎯</div>
+        <h3>Metas</h3>
+        <p>Planejamento orçamentário mensal por categoria com acompanhamento em tempo real.</p>
+        <div class="module-tags">
+          <span class="module-tag">Progresso</span>
+          <span class="module-tag">Alertas</span>
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon" style="background:rgba(212,168,67,0.12);">🚛</div>
+        <h3>Frotas</h3>
+        <p>Cadastro de veículos com status, defeitos e gestão de manutenção completa.</p>
+        <div class="module-tags">
+          <span class="module-tag">Status</span>
+          <span class="module-tag">Manutenção</span>
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon" style="background:rgba(59,170,108,0.12);">⛽</div>
+        <h3>Combustível</h3>
+        <p>Controle de estoque S10/S500 com projeção de dias restantes por consumo médio.</p>
+        <div class="module-tags">
+          <span class="module-tag">S10/S500</span>
+          <span class="module-tag">Projeção</span>
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon" style="background:rgba(212,168,67,0.12);">🔧</div>
+        <h3>Guincho</h3>
+        <p>Registro de ocorrências com status, motorista, endereços e dados do veículo.</p>
+        <div class="module-tags">
+          <span class="module-tag">4 Status</span>
+          <span class="module-tag">Rastreamento</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECURITY -->
+  <section id="security">
+    <div class="section-header reveal">
+      <div class="section-tag">Segurança</div>
+      <h2 class="section-title">Segurança de nível empresarial</h2>
+      <p class="section-desc">Proteção em camadas com controle granular de acesso e auditoria completa.</p>
+    </div>
+    <div class="security-grid reveal">
+      <div class="security-card">
+        <div class="security-icon" style="background:rgba(59,170,108,0.12);">🛡️</div>
+        <h3>Row-Level Security</h3>
+        <p>Cada linha do banco de dados é protegida por políticas PostgreSQL. Mesmo APIs expostas não acessam dados não autorizados.</p>
+      </div>
+      <div class="security-card">
+        <div class="security-icon" style="background:rgba(212,168,67,0.12);">👤</div>
+        <h3>RBAC por Aba</h3>
+        <p>Admin define exatamente quem vê e edita cada módulo. Permissões por aba, por widget do dashboard, por função.</p>
+      </div>
+      <div class="security-card">
+        <div class="security-icon" style="background:rgba(59,170,108,0.12);">🔒</div>
+        <h3>Domínio Restrito</h3>
+        <p>Apenas emails do domínio autorizado podem se cadastrar. Novos usuários precisam de aprovação do administrador.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH STACK -->
+  <section class="tech-section">
+    <div class="section-header reveal">
+      <div class="section-tag">Tecnologia</div>
+      <h2 class="section-title">Stack moderna e robusta</h2>
+      <p class="section-desc">Construído com as melhores tecnologias do mercado.</p>
+    </div>
+    <div class="tech-grid reveal">
+      <div class="tech-item"><span class="tech-dot" style="background:#61dafb;"></span> React 19</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#646cff;"></span> TypeScript</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#f59e0b;"></span> Vite 8</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#38bdf8;"></span> Tailwind CSS</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#3ecf8e;"></span> Supabase</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#ef4444;"></span> PostgreSQL</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#8b5cf6;"></span> TanStack Router</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#06b6d4;"></span> Recharts</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#d4a843;"></span> Google Gemini IA</div>
+      <div class="tech-item"><span class="tech-dot" style="background:#22c55e;"></span> Row-Level Security</div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing-section" id="pricing">
+    <div class="section-header reveal">
+      <div class="section-tag">Planos</div>
+      <h2 class="section-title">Invista no controle da sua empresa</h2>
+      <p class="section-desc">Escolha o plano ideal para o tamanho da sua operação.</p>
+    </div>
+    <div class="pricing-grid reveal">
+      <div class="pricing-card">
+        <div class="pricing-name">Starter</div>
+        <div class="pricing-price"><span class="currency">R$</span>297</div>
+        <div class="pricing-period">/mês · até 5 usuários</div>
+        <ul class="pricing-features">
+          <li><span class="icon">✓</span> Dashboard e Compras</li>
+          <li><span class="icon">✓</span> Metas e Frotas</li>
+          <li><span class="icon">✓</span> OCR com IA (100/mês)</li>
+          <li><span class="icon">✓</span> Suporte por email</li>
+          <li><span class="icon">✓</span> Atualizações incluídas</li>
+        </ul>
+        <a href="#cta" class="pricing-btn pricing-btn-secondary">Começar</a>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-name">Professional</div>
+        <div class="pricing-price"><span class="currency">R$</span>597</div>
+        <div class="pricing-period">/mês · até 15 usuários</div>
+        <ul class="pricing-features">
+          <li><span class="icon">✓</span> Todos os 7 módulos</li>
+          <li><span class="icon">✓</span> OCR com IA ilimitado</li>
+          <li><span class="icon">✓</span> Importação Excel avançada</li>
+          <li><span class="icon">✓</span> Controle de acesso granular</li>
+          <li><span class="icon">✓</span> Suporte prioritário</li>
+          <li><span class="icon">✓</span> Personalização de branding</li>
+        </ul>
+        <a href="#cta" class="pricing-btn pricing-btn-primary">Escolher Plano</a>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-name">Enterprise</div>
+        <div class="pricing-price"><span class="currency">R$</span>997</div>
+        <div class="pricing-period">/mês · usuários ilimitados</div>
+        <ul class="pricing-features">
+          <li><span class="icon">✓</span> Tudo do Professional</li>
+          <li><span class="icon">✓</span> Deploy dedicado</li>
+          <li><span class="icon">✓</span> Integrações customizadas</li>
+          <li><span class="icon">✓</span> SLA 99.9% uptime</li>
+          <li><span class="icon">✓</span> Suporte 24/7</li>
+          <li><span class="icon">✓</span> Treinamento da equipe</li>
+        </ul>
+        <a href="#cta" class="pricing-btn pricing-btn-secondary">Falar com Vendas</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section" id="cta">
+    <div class="reveal">
+      <h2>Pronto para ter controle<br><span style="background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">real da sua operação?</span></h2>
+      <p>Solicite uma demonstração gratuita e veja como o THcontrol pode transformar sua gestão.</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;position:relative;">
+        <a href="mailto:contato@thcontrol.com.br?subject=Solicitação%20de%20Demo%20-%20THcontrol" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Solicitar Demonstração
+        </a>
+        <a href="https://github.com/Thiagose7etr/smart-spend-26" target="_blank" class="btn btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          Ver no GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="footer-logo">TH</div>
+        THcontrol
+      </div>
+      <div class="footer-links">
+        <a href="#features">Recursos</a>
+        <a href="#modules">Módulos</a>
+        <a href="#pricing">Planos</a>
+        <a href="mailto:contato@thcontrol.com.br">Contato</a>
+      </div>
+      <div class="footer-copy">© 2026 THcontrol. Todos os direitos reservados.</div>
+    </div>
+  </footer>
+
+  <script>
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    hamburger.addEventListener('click', () => navLinks.classList.toggle('active'));
+    navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('active')));
+
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50));
+
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    reveals.forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
