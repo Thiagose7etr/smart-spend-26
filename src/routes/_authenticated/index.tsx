@@ -31,7 +31,7 @@ import {
   GripVertical,
   LayoutDashboard,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 import {
@@ -165,13 +165,26 @@ function DashboardPage() {
   };
 
   const { data: compras = [] } = useQuery({
-    queryKey: ["compras", "all"],
+    queryKey: ["compras", "ano", ano],
     queryFn: async () => {
       const { data, error } = await sbFrom("compras")
         .select("*")
-        .order("data_emissao", { ascending: false });
+        .eq("ano", ano)
+        .order("data_emissao", { ascending: false })
+        .limit(5000);
       if (error) throw error;
       return (data ?? []) as unknown as Compra[];
+    },
+  });
+
+  const { data: anosRaw = [] } = useQuery({
+    queryKey: ["compras-anos"],
+    queryFn: async () => {
+      const { data, error } = await sbFrom("compras")
+        .select("ano")
+        .limit(5000);
+      if (error) throw error;
+      return (data ?? []) as { ano: number | null }[];
     },
   });
 
@@ -186,9 +199,11 @@ function DashboardPage() {
     },
   });
 
-  const anosDisponiveis = Array.from(new Set(compras.map((c) => c.ano).filter(Boolean))) as number[];
-  if (!anosDisponiveis.includes(ano)) anosDisponiveis.unshift(ano);
-  anosDisponiveis.sort((a, b) => b - a);
+  const anosDisponiveis = useMemo(() => {
+    const list = anosRaw.map((c: any) => c.ano).filter(Boolean);
+    if (!list.includes(ano)) list.push(ano);
+    return Array.from(new Set(list)).sort((a, b) => b - a);
+  }, [anosRaw, ano]);
 
   const comprasAno = compras.filter((c) => c.ano === ano);
   const totalAno = comprasAno.reduce((s, c) => s + Number(c.valor_total || 0), 0);
