@@ -173,13 +173,98 @@ function ComprasPage() {
     return null;
   };
 
+  const parseExcelDate = (rawDate: any): string | null => {
+    if (!rawDate) return null;
+    if (rawDate instanceof Date) {
+      // Ajusta para o dia local para evitar problemas de timezone do toISOString
+      const y = rawDate.getFullYear();
+      const m = String(rawDate.getMonth() + 1).padStart(2, "0");
+      const d = String(rawDate.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    if (typeof rawDate === "number") {
+      const date = new Date((rawDate - 25569) * 86400 * 1000);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    
+    const str = String(rawDate).trim();
+    if (!str) return null;
+
+    // Se estiver no formato DD/MM/YYYY ou DD/MM/YY
+    const parts = str.split("/");
+    if (parts.length === 3) {
+      let day = parseInt(parts[0], 10);
+      let month = parseInt(parts[1], 10);
+      let year = parseInt(parts[2], 10);
+      if (parts[2].length === 2) {
+        year += 2000;
+      }
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      }
+    }
+
+    // Se estiver no formato YYYY-MM-DD
+    const dashParts = str.split("-");
+    if (dashParts.length === 3 && dashParts[0].length === 4) {
+      return str.slice(0, 10);
+    }
+
+    const parsed = new Date(str);
+    if (!Number.isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, "0");
+      const d = String(parsed.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    return null;
+  };
+
+  const parseExcelNumber = (val: any): number => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === "number") return val;
+    const str = String(val).trim();
+    if (!str) return 0;
+    
+    // Remove tudo que não é dígito, ponto, vírgula ou sinal negativo
+    let clean = str.replace(/[^0-9.,-]/g, "");
+    
+    // Identifica separador de decimal (ex: 1.000,00 vs 1,000.00)
+    if (clean.includes(",") && clean.includes(".")) {
+      if (clean.indexOf(",") > clean.indexOf(".")) {
+        // Formato BR: 1.000,00
+        clean = clean.replace(/\./g, "").replace(",", ".");
+      } else {
+        // Formato US: 1,000.00
+        clean = clean.replace(/,/g, "");
+      }
+    } else if (clean.includes(",")) {
+      // Se só tem vírgula (ex: 1500,50 ou 1,234)
+      const commaIndex = clean.lastIndexOf(",");
+      if (clean.length - commaIndex <= 3) {
+        // Assume decimal: 1500,50 -> 1500.50
+        clean = clean.replace(",", ".");
+      } else {
+        // Assume milhar: 1,000 -> 1000
+        clean = clean.replace(/,/g, "");
+      }
+    }
+    
+    const num = Number(clean);
+    return Number.isNaN(num) ? 0 : num;
+  };
+
   const onImportFile = (file: File) => {
     setImporting(true);
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: "binary", cellDates: true });
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: "array", cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json<any>(sheet, { defval: null });
@@ -210,27 +295,13 @@ function ComprasPage() {
           const nfVal = colMap.nf ? String(row[colMap.nf] ?? "").trim() : null;
           const fornecedorVal = colMap.fornecedor ? String(row[colMap.fornecedor] ?? "").trim() : null;
           
-          let dateVal: string | null = null;
-          if (colMap.data_emissao) {
-            const rawDate = row[colMap.data_emissao];
-            if (rawDate instanceof Date) {
-              dateVal = rawDate.toISOString().slice(0, 10);
-            } else if (typeof rawDate === "number") {
-              const date = new Date((rawDate - 25569) * 86400 * 1000);
-              dateVal = date.toISOString().slice(0, 10);
-            } else if (rawDate) {
-              const parsed = new Date(String(rawDate).trim());
-              if (!Number.isNaN(parsed.getTime())) {
-                dateVal = parsed.toISOString().slice(0, 10);
-              }
-            }
-          }
+          let dateVal = colMap.data_emissao ? parseExcelDate(row[colMap.data_emissao]) : null;
           if (!dateVal) dateVal = new Date().toISOString().slice(0, 10);
 
           const itemVal = colMap.item ? String(row[colMap.item] ?? "").trim() : null;
-          const quantVal = colMap.quant ? Number(String(row[colMap.quant] ?? "0").replace(/[^0-9.,-]/g, '').replace(',', '.')) : 1;
-          const unitVal = colMap.valor_unit ? Number(String(row[colMap.valor_unit] ?? "0").replace(/[^0-9.,-]/g, '').replace(',', '.')) : 0;
-          let totalVal = colMap.valor_total ? Number(String(row[colMap.valor_total] ?? "0").replace(/[^0-9.,-]/g, '').replace(',', '.')) : 0;
+          const quantVal = colMap.quant ? parseExcelNumber(row[colMap.quant]) : 1;
+          const unitVal = colMap.valor_unit ? parseExcelNumber(row[colMap.valor_unit]) : 0;
+          let totalVal = colMap.valor_total ? parseExcelNumber(row[colMap.valor_total]) : 0;
           
           if (!totalVal && unitVal) {
             totalVal = quantVal * unitVal;
@@ -290,7 +361,7 @@ function ComprasPage() {
         if (importInputRef.current) importInputRef.current.value = "";
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const executarImportacao = useMutation({
