@@ -67,6 +67,7 @@ function FrotasPage() {
   const [form, setForm] = useState<Partial<Frota>>(emptyForm());
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
+  const [equipamentoFiltro, setEquipamentoFiltro] = useState<string>("todos");
 
   const { data: frotas = [] } = useQuery({
     queryKey: ["frotas"],
@@ -76,6 +77,13 @@ function FrotasPage() {
       return (data ?? []) as Frota[];
     },
   });
+
+  const tiposEquipamento = useMemo(() => {
+    const list = frotas
+      .map((f) => (f.tipo ? f.tipo.trim().toUpperCase() : ""))
+      .filter(Boolean);
+    return Array.from(new Set(list)).sort();
+  }, [frotas]);
 
   const filtradas = useMemo(() => {
     const b = busca.toLowerCase();
@@ -92,9 +100,13 @@ function FrotasPage() {
         (statusFiltro === "manutencao" && f.status === "manutencao") ||
         (statusFiltro === "inativo" && f.status === "inativo");
 
-      return matchBusca && matchStatus;
+      const matchEquipamento =
+        equipamentoFiltro === "todos" ||
+        (f.tipo && f.tipo.trim().toUpperCase() === equipamentoFiltro);
+
+      return matchBusca && matchStatus && matchEquipamento;
     });
-  }, [frotas, busca, statusFiltro]);
+  }, [frotas, busca, statusFiltro, equipamentoFiltro]);
 
   const salvar = useMutation({
     mutationFn: async (f: Partial<Frota>) => {
@@ -268,9 +280,24 @@ function FrotasPage() {
 
       <Card className="mb-4">
         <CardContent className="pt-6 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por código, placa, marca ou tipo…" className="pl-9" />
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por código, placa, marca ou tipo…" className="pl-9" />
+            </div>
+            <div className="w-full md:w-[220px]">
+              <Select value={equipamentoFiltro} onValueChange={setEquipamentoFiltro}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filtrar por Equipamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos Equipamentos</SelectItem>
+                  {tiposEquipamento.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2 text-xs pt-1 border-t border-border/40">
             <button
