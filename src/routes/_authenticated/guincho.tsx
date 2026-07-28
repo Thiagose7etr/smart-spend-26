@@ -22,10 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Plus, Wrench, MapPin, Trash2, Pencil, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { sbFrom, formatLocalDateString, formatEquipmentType, type Guincho } from "@/lib/db-types";
+import { sbFrom, formatLocalDateString, formatEquipmentType, type Guincho, type Frota } from "@/lib/db-types";
 import { useCurrentUserAccess } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/guincho")({
@@ -73,6 +74,15 @@ function GuinchoPage() {
     },
   });
 
+  const { data: frotas = [] } = useQuery({
+    queryKey: ["frotas"],
+    queryFn: async () => {
+      const { data, error } = await sbFrom("frotas").select("*");
+      if (error) throw error;
+      return (data ?? []) as Frota[];
+    },
+  });
+
   const salvar = useMutation({
     mutationFn: async (f: Partial<Guincho>) => {
       const payload = {
@@ -111,6 +121,18 @@ function GuinchoPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["guincho"] }),
+  });
+
+  const atualizarStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await sbFrom("guincho").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["guincho"] });
+      toast.success("Status atualizado!");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (accessLoading) {
@@ -185,7 +207,33 @@ function GuinchoPage() {
                   </div>
                   <div>
                     <Label className="text-xs">Frota</Label>
-                    <Input value={form.frota ?? ""} onChange={(e) => setForm({ ...form, frota: e.target.value })} />
+                    <Input
+                      value={form.frota ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm((prev) => {
+                          const next = { ...prev, frota: val };
+                          const f = frotas.find((item) => String(item.codigo).trim() === val.trim());
+                          if (f) {
+                            next.modelo = f.modelo || "";
+                            next.tipo = f.tipo || "";
+                          }
+                          return next;
+                        });
+                      }}
+                      placeholder="Ex: 201"
+                    />
+                    {form.frota && (
+                      <div className="text-[10px] mt-1 font-medium">
+                        {frotas.find((item) => String(item.codigo).trim() === String(form.frota).trim()) ? (
+                          <span className="text-emerald-400">
+                            ✓ {frotas.find((item) => String(item.codigo).trim() === String(form.frota).trim())?.modelo} - {frotas.find((item) => String(item.codigo).trim() === String(form.frota).trim())?.placa}
+                          </span>
+                        ) : (
+                          <span className="text-amber-500">⚠ Frota não cadastrada</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label className="text-xs">Tipo</Label>
@@ -251,15 +299,58 @@ function GuinchoPage() {
                       <div className="text-xs text-muted-foreground">
                         {formatLocalDateString(g.data)}
                       </div>
-                      <div className="font-semibold">Frota {g.frota || "—"}</div>
+                      <div className="font-semibold flex items-center gap-1.5 flex-wrap">
+                        <span>Frota {g.frota || "—"}</span>
+                        {(() => {
+                          const f = frotas.find((item) => String(item.codigo).trim() === String(g.frota).trim());
+                          return f?.placa ? (
+                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-border/80 text-zinc-400">
+                              {f.placa}
+                            </Badge>
+                          ) : null;
+                        })()}
+                      </div>
                     </div>
                   </div>
-                  <Badge className={`${tone} border-0 text-[10px] uppercase tracking-wider`}>{g.status}</Badge>
+                  {canEdit ? (
+                    <Select
+                      value={g.status || "PENDENTE"}
+                      onValueChange={(v) => atualizarStatus.mutate({ id: g.id, status: v })}
+                    >
+                      <SelectTrigger className={cn("h-7 w-auto border-0 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 shadow-none focus:ring-0", tone)}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PENDENTE">Pendente</SelectItem>
+                        <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+                        <SelectItem value="CONCLUIDO">Concluído</SelectItem>
+                        <SelectItem value="CANCELADO">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge className={`${tone} border-0 text-[10px] uppercase tracking-wider`}>{g.status}</Badge>
+                  )}
                 </div>
                 <div className="mt-3 text-sm">
                   <div className="text-muted-foreground text-xs uppercase tracking-wider">Problema</div>
                   <div className="font-medium">{g.problema || "—"}</div>
                 </div>
+                {(g.modelo || g.peso_kg) && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-muted/20 border border-border/30 rounded-md p-2">
+                    {g.modelo && (
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Modelo</span>
+                        <span className="font-semibold text-zinc-200">{g.modelo}</span>
+                      </div>
+                    )}
+                    {g.peso_kg !== null && g.peso_kg !== undefined && g.peso_kg > 0 && (
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Peso</span>
+                        <span className="font-semibold text-zinc-200">{Number(g.peso_kg).toLocaleString("pt-BR")} kg</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {(g.endereco_retirada || g.endereco_entrega) && (
                   <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                     {g.endereco_retirada && (
