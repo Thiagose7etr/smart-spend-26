@@ -176,17 +176,17 @@ function ComprasPage() {
   const parseExcelDate = (rawDate: any): string | null => {
     if (!rawDate) return null;
     if (rawDate instanceof Date) {
-      // Ajusta para o dia local para evitar problemas de timezone do toISOString
-      const y = rawDate.getFullYear();
-      const m = String(rawDate.getMonth() + 1).padStart(2, "0");
-      const d = String(rawDate.getDate()).padStart(2, "0");
+      // Usa métodos UTC para evitar que o fuso horário local desloque a data para o dia anterior
+      const y = rawDate.getUTCFullYear();
+      const m = String(rawDate.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(rawDate.getUTCDate()).padStart(2, "0");
       return `${y}-${m}-${d}`;
     }
     if (typeof rawDate === "number") {
       const date = new Date((rawDate - 25569) * 86400 * 1000);
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const d = String(date.getDate()).padStart(2, "0");
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(date.getUTCDate()).padStart(2, "0");
       return `${y}-${m}-${d}`;
     }
     
@@ -215,9 +215,9 @@ function ComprasPage() {
 
     const parsed = new Date(str);
     if (!Number.isNaN(parsed.getTime())) {
-      const y = parsed.getFullYear();
-      const m = String(parsed.getMonth() + 1).padStart(2, "0");
-      const d = String(parsed.getDate()).padStart(2, "0");
+      const y = parsed.getUTCFullYear();
+      const m = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(parsed.getUTCDate()).padStart(2, "0");
       return `${y}-${m}-${d}`;
     }
     return null;
