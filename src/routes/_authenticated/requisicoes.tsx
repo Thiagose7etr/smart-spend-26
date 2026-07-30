@@ -49,6 +49,7 @@ import {
   PlusCircle,
   Trash,
   Printer,
+  PackageOpen,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -70,7 +71,7 @@ interface FormState {
   centro_custo: string;
   data: string;
   solicitante: string;
-  status: "pendente" | "comprado" | "entregue";
+  status: "pendente" | "comprado" | "parcial" | "entregue";
   observacao: string;
   itens: { id?: string; descricao: string; quantidade: number }[];
 }
@@ -184,7 +185,7 @@ function RequisicoesPage() {
   });
 
   const atualizarStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "pendente" | "comprado" | "entregue" }) => {
+    mutationFn: async ({ id, status }: { id: string; status: "pendente" | "comprado" | "parcial" | "entregue" }) => {
       const { error } = await sbFrom("requisicoes").update({ status }).eq("id", id);
       if (error) throw error;
     },
@@ -493,6 +494,7 @@ function RequisicoesPage() {
   // Contadores
   const countPendente = requisicoes.filter((r) => r.status === "pendente").length;
   const countComprado = requisicoes.filter((r) => r.status === "comprado").length;
+  const countParcial = requisicoes.filter((r) => r.status === "parcial").length;
   const countEntregue = requisicoes.filter((r) => r.status === "entregue").length;
 
   return (
@@ -561,6 +563,7 @@ function RequisicoesPage() {
                       <SelectContent>
                         <SelectItem value="pendente">Pendente ⚠️</SelectItem>
                         <SelectItem value="comprado">Aguardando entrega 🛒</SelectItem>
+                        <SelectItem value="parcial">Recebido parcial 📦</SelectItem>
                         <SelectItem value="entregue">Entregue ✅</SelectItem>
                       </SelectContent>
                     </Select>
@@ -690,6 +693,17 @@ function RequisicoesPage() {
               <ShoppingCart className="h-3 w-3 text-amber-500" /> Aguardando entrega ({countComprado})
             </button>
             <button
+              onClick={() => setStatusFiltro("parcial")}
+              className={cn(
+                "px-3 py-1.5 rounded-full font-medium transition-colors border cursor-pointer select-none flex items-center gap-1",
+                statusFiltro === "parcial"
+                  ? "bg-blue-600 border-blue-600 text-white"
+                  : "bg-muted/40 border-border text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              <PackageOpen className="h-3 w-3 text-blue-500" /> Recebido parcial ({countParcial})
+            </button>
+            <button
               onClick={() => setStatusFiltro("entregue")}
               className={cn(
                 "px-3 py-1.5 rounded-full font-medium transition-colors border cursor-pointer select-none flex items-center gap-1",
@@ -740,6 +754,11 @@ function RequisicoesPage() {
                       {r.status === "comprado" && (
                         <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border-amber-500/20 gap-1 py-0.5">
                           <ShoppingCart className="h-3.5 w-3.5" /> Aguardando entrega
+                        </Badge>
+                      )}
+                      {r.status === "parcial" && (
+                        <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/10 border-blue-500/20 gap-1 py-0.5">
+                          <PackageOpen className="h-3.5 w-3.5" /> Recebido parcial
                         </Badge>
                       )}
                       {r.status === "entregue" && (
@@ -884,6 +903,18 @@ function RequisicoesPage() {
                           title="Marcar como Aguardando entrega"
                         >
                           <ShoppingCart className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => atualizarStatus.mutate({ id: r.id, status: "parcial" })}
+                          className={cn(
+                            "h-5 w-5 rounded flex items-center justify-center transition cursor-pointer",
+                            r.status === "parcial"
+                              ? "bg-blue-500 text-white shadow-sm"
+                              : "text-muted-foreground hover:bg-muted"
+                          )}
+                          title="Marcar como Recebido parcial"
+                        >
+                          <PackageOpen className="h-3 w-3" />
                         </button>
                         <button
                           onClick={() => atualizarStatus.mutate({ id: r.id, status: "entregue" })}

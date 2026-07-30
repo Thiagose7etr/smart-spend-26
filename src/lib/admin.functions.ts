@@ -57,10 +57,14 @@ export const runMigrationSQL = createServerFn({ method: "POST" })
           centro_custo text NOT NULL,
           data date NOT NULL DEFAULT current_date,
           solicitante text NOT NULL,
-          status text NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'comprado', 'entregue')),
+          status text NOT NULL DEFAULT 'pendente',
           created_at timestamptz NOT NULL DEFAULT now(),
           updated_at timestamptz NOT NULL DEFAULT now()
         );
+
+        -- Garantir a restrição de status atualizada com 'parcial'
+        ALTER TABLE public.requisicoes DROP CONSTRAINT IF EXISTS requisicoes_status_check;
+        ALTER TABLE public.requisicoes ADD CONSTRAINT requisicoes_status_check CHECK (status IN ('pendente', 'comprado', 'parcial', 'entregue'));
 
         -- 2. Criar a tabela para suportar os múltiplos itens
         CREATE TABLE IF NOT EXISTS public.requisicao_itens (

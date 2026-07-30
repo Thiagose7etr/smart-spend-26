@@ -28,7 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save, FolderOpen, AlertCircle, ShoppingCart } from "lucide-react";
+import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save, FolderOpen, AlertCircle, ShoppingCart, PackageOpen } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CATEGORIAS, fmtBRL, sbFrom, formatSupplierName, type Requisicao } from "@/lib/db-types";
@@ -798,6 +798,11 @@ function MapaCotacaoPage() {
                                   Aguardando entrega
                                 </Badge>
                               )}
+                              {r.status === "parcial" && (
+                                <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/10 border-blue-500/20 gap-1 py-0.5 text-[10.5px]">
+                                  Recebido parcial
+                                </Badge>
+                              )}
                               {r.status === "entregue" && (
                                 <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20 gap-1 py-0.5 text-[10.5px]">
                                   Entregue
@@ -876,6 +881,11 @@ function MapaCotacaoPage() {
                     {requisicao.status === "comprado" && (
                       <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border-amber-500/20 gap-1 py-0.5">
                         <ShoppingCart className="h-3.5 w-3.5" /> Aguardando entrega
+                      </Badge>
+                    )}
+                    {requisicao.status === "parcial" && (
+                      <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/10 border-blue-500/20 gap-1 py-0.5">
+                        <PackageOpen className="h-3.5 w-3.5" /> Recebido parcial
                       </Badge>
                     )}
                     {requisicao.status === "entregue" && (
