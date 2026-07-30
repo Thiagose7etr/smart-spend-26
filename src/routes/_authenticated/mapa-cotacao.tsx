@@ -28,7 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save, FolderOpen } from "lucide-react";
+import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save, FolderOpen, AlertCircle, ShoppingCart, PackageOpen } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { CATEGORIAS, fmtBRL, sbFrom, formatSupplierName, type Requisicao } from "@/lib/db-types";
@@ -76,9 +76,9 @@ function MapaCotacaoPage() {
     },
   });
 
-  const fornecedoresHistorico = useMemo(() => {
+  const fornecedoresHistorico = useMemo<string[]>(() => {
     const list = compras.map((c: any) => String(c.fornecedor || "").trim().toUpperCase()).filter(Boolean);
-    return Array.from(new Set(list)).sort();
+    return Array.from(new Set(list)).sort() as string[];
   }, [compras]);
 
   // Carrega a requisição buscada
@@ -96,19 +96,21 @@ function MapaCotacaoPage() {
     },
   });
 
-  // Carrega todas as requisições em rascunho (cotacao não é nula e status é pendente)
-  const { data: rascunhos = [], isLoading: loadingRascunhos } = useQuery({
+  // Carrega todas as requisições com cotação salva (independente do status)
+  const { data: todasRequisicoes = [], isLoading: loadingRascunhos } = useQuery({
     queryKey: ["requisicoes-rascunhos"],
     queryFn: async () => {
       const { data, error } = await sbFrom("requisicoes")
         .select("*")
-        .eq("status", "pendente")
-        .not("cotacao", "is", null)
         .order("numero", { ascending: false });
       if (error) throw error;
-      return data as Requisicao[];
+      return (data ?? []) as Requisicao[];
     },
   });
+
+  const rascunhos = useMemo(() => {
+    return todasRequisicoes.filter((r) => r.cotacao !== null && r.cotacao !== undefined);
+  }, [todasRequisicoes]);
 
   // Estados da Matriz de Cotação
   const [fornecedores, setFornecedores] = useState<string[]>(["FORNECEDOR A", "FORNECEDOR B"]);
@@ -136,6 +138,66 @@ function MapaCotacaoPage() {
       }
     }
   }, [requisicao]);
+
+  // Cálculos da Matriz (movidos para evitar violação de regras de hooks com o early return abaixo)
+  const itens = requisicao?.itens ?? [];
+
+  // Vencedores por item (com suporte a manual override)
+  const resolvedVencedores = useMemo(() => {
+    const map: { [itemId: string]: { fornecedor: string; preco: number } | null } = {};
+    itens.forEach((it) => {
+      // 1. Verifica escolha manual
+      const manualForn = vencedoresManuais[it.id];
+      if (manualForn && fornecedores.includes(manualForn)) {
+        const p = precos[it.id]?.[manualForn] ?? 0;
+        if (p > 0) {
+          map[it.id] = { fornecedor: manualForn, preco: p };
+          return;
+        }
+      }
+
+      // 2. Fallback para menor preço
+      let minPreco = Infinity;
+      let minForn = "";
+      fornecedores.forEach((forn) => {
+        const p = precos[it.id]?.[forn] ?? 0;
+        if (p > 0 && p < minPreco) {
+          minPreco = p;
+          minForn = forn;
+        }
+      });
+      map[it.id] = minForn ? { fornecedor: minForn, preco: minPreco } : null;
+    });
+    return map;
+  }, [itens, fornecedores, precos, vencedoresManuais]);
+
+  // Totais por fornecedor (coluna)
+  const totaisPorFornecedor = useMemo(() => {
+    const map: { [fornecedor: string]: number } = {};
+    fornecedores.forEach((forn) => {
+      let total = 0;
+      itens.forEach((it) => {
+        const p = precos[it.id]?.[forn] ?? 0;
+        total += p * it.quantidade;
+      });
+      map[forn] = total;
+    });
+    return map;
+  }, [itens, fornecedores, precos]);
+
+  // Fornecedor mais barato no geral
+  const fornecedorMaisBarato = useMemo(() => {
+    let minTotal = Infinity;
+    let minForn = "";
+    fornecedores.forEach((forn) => {
+      const tot = totaisPorFornecedor[forn];
+      if (tot > 0 && tot < minTotal) {
+        minTotal = tot;
+        minForn = forn;
+      }
+    });
+    return minForn ? { fornecedor: minForn, total: minTotal } : null;
+  }, [fornecedores, totaisPorFornecedor]);
 
   if (accessLoading) {
     return (
@@ -268,65 +330,7 @@ function MapaCotacaoPage() {
     });
   };
 
-  // Cálculos da Matriz
-  const itens = requisicao?.itens ?? [];
-
-  // Vencedores por item (com suporte a manual override)
-  const resolvedVencedores = useMemo(() => {
-    const map: { [itemId: string]: { fornecedor: string; preco: number } | null } = {};
-    itens.forEach((it) => {
-      // 1. Verifica escolha manual
-      const manualForn = vencedoresManuais[it.id];
-      if (manualForn && fornecedores.includes(manualForn)) {
-        const p = precos[it.id]?.[manualForn] ?? 0;
-        if (p > 0) {
-          map[it.id] = { fornecedor: manualForn, preco: p };
-          return;
-        }
-      }
-
-      // 2. Fallback para menor preço
-      let minPreco = Infinity;
-      let minForn = "";
-      fornecedores.forEach((forn) => {
-        const p = precos[it.id]?.[forn] ?? 0;
-        if (p > 0 && p < minPreco) {
-          minPreco = p;
-          minForn = forn;
-        }
-      });
-      map[it.id] = minForn ? { fornecedor: minForn, preco: minPreco } : null;
-    });
-    return map;
-  }, [itens, fornecedores, precos, vencedoresManuais]);
-
-  // Totais por fornecedor (coluna)
-  const totaisPorFornecedor = useMemo(() => {
-    const map: { [fornecedor: string]: number } = {};
-    fornecedores.forEach((forn) => {
-      let total = 0;
-      itens.forEach((it) => {
-        const p = precos[it.id]?.[forn] ?? 0;
-        total += p * it.quantidade;
-      });
-      map[forn] = total;
-    });
-    return map;
-  }, [itens, fornecedores, precos]);
-
-  // Fornecedor mais barato no geral
-  const fornecedorMaisBarato = useMemo(() => {
-    let minTotal = Infinity;
-    let minForn = "";
-    fornecedores.forEach((forn) => {
-      const tot = totaisPorFornecedor[forn];
-      if (tot > 0 && tot < minTotal) {
-        minTotal = tot;
-        minForn = forn;
-      }
-    });
-    return minForn ? { fornecedor: minForn, total: minTotal } : null;
-  }, [fornecedores, totaisPorFornecedor]);
+  // (Cálculos da Matriz movidos para antes do early return)
 
   // Mutation para salvar rascunho
   const salvarRascunhoMutation = useMutation({
@@ -379,7 +383,7 @@ function MapaCotacaoPage() {
     },
   });
 
-  // Abre o modal de Gerar Compras e inicializa as variáveis de faturamento
+    // Abre o modal de Gerar Compras e inicializa as variáveis de faturamento
   const openGerarCompras = () => {
     if (!requisicao) return;
     const initialFaturamentos: { [fornecedor: string]: FornecedorFaturamento } = {};
@@ -456,9 +460,17 @@ function MapaCotacaoPage() {
       const { error: insErr } = await sbFrom("compras").insert(rows);
       if (insErr) throw insErr;
 
-      // 2. Atualizar status da requisição para 'comprado'
+      // 2. Atualizar status da requisição para 'comprado' e salvar a cotação correspondente
+      const cotacaoPayload = {
+        fornecedores,
+        precos,
+        vencedoresManuais,
+      };
       const { error: updErr } = await sbFrom("requisicoes")
-        .update({ status: "comprado" })
+        .update({ 
+          status: "comprado",
+          cotacao: cotacaoPayload
+        })
         .eq("id", requisicao!.id);
       if (updErr) throw updErr;
     },
@@ -728,17 +740,17 @@ function MapaCotacaoPage() {
             <CardHeader className="pb-3 border-b border-border/40">
               <CardTitle className="text-base flex items-center gap-2">
                 <FolderOpen className="h-4 w-4 text-primary" />
-                Cotações Salvas em Rascunho
+                Mapas de Cotação Salvos
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               {loadingRascunhos ? (
                 <div className="flex justify-center py-6 text-sm text-muted-foreground animate-pulse">
-                  Carregando rascunhos...
+                  Carregando cotações...
                 </div>
               ) : rascunhos.length === 0 ? (
                 <div className="text-center py-8 text-sm text-muted-foreground italic">
-                  Nenhuma cotação em rascunho pendente no momento.
+                  Nenhuma cotação salva no momento.
                 </div>
               ) : (
                 <div className="overflow-x-auto border border-border/40 rounded-lg">
@@ -749,6 +761,7 @@ function MapaCotacaoPage() {
                         <TableHead className="w-[120px]">Data</TableHead>
                         <TableHead>Solicitante</TableHead>
                         <TableHead>Centro de Custo</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Fornecedores Cotados</TableHead>
                         <TableHead className="w-[160px] text-right">Ações</TableHead>
                       </TableRow>
@@ -769,6 +782,28 @@ function MapaCotacaoPage() {
                             </TableCell>
                             <TableCell className="text-xs text-zinc-300">
                               {r.centro_custo}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {r.status === "pendente" && (
+                                <Badge className="bg-rose-500/10 text-rose-500 hover:bg-rose-500/10 border-rose-500/20 gap-1 py-0.5 text-[10.5px]">
+                                  Pendente
+                                </Badge>
+                              )}
+                              {r.status === "comprado" && (
+                                <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border-amber-500/20 gap-1 py-0.5 text-[10.5px]">
+                                  Aguardando entrega
+                                </Badge>
+                              )}
+                              {r.status === "parcial" && (
+                                <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/10 border-blue-500/20 gap-1 py-0.5 text-[10.5px]">
+                                  Recebido parcial
+                                </Badge>
+                              )}
+                              {r.status === "entregue" && (
+                                <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20 gap-1 py-0.5 text-[10.5px]">
+                                  Entregue
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
                               {forns.length > 0 ? (
@@ -834,9 +869,26 @@ function MapaCotacaoPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     Requisição Nº {requisicao.numero}
-                    <Badge variant={requisicao.status === "pendente" ? "secondary" : "default"} className="capitalize">
-                      {requisicao.status}
-                    </Badge>
+                    {requisicao.status === "pendente" && (
+                      <Badge className="bg-rose-500/10 text-rose-500 hover:bg-rose-500/10 border-rose-500/20 gap-1 py-0.5">
+                        <AlertCircle className="h-3.5 w-3.5" /> Pendente
+                      </Badge>
+                    )}
+                    {requisicao.status === "comprado" && (
+                      <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border-amber-500/20 gap-1 py-0.5">
+                        <ShoppingCart className="h-3.5 w-3.5" /> Aguardando entrega
+                      </Badge>
+                    )}
+                    {requisicao.status === "parcial" && (
+                      <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/10 border-blue-500/20 gap-1 py-0.5">
+                        <PackageOpen className="h-3.5 w-3.5" /> Recebido parcial
+                      </Badge>
+                    )}
+                    {requisicao.status === "entregue" && (
+                      <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20 gap-1 py-0.5">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Entregue
+                      </Badge>
+                    )}
                   </CardTitle>
                   <div className="text-xs text-muted-foreground">
                     Data: {new Date(requisicao.data).toLocaleDateString("pt-BR")}
@@ -892,7 +944,7 @@ function MapaCotacaoPage() {
                           variant="outline"
                           size="sm"
                           className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                          onClick={() => excluirRascunhoMutation.mutate()}
+                          onClick={() => excluirRascunhoMutation.mutate(undefined)}
                           disabled={excluirRascunhoMutation.isPending}
                         >
                           {excluirRascunhoMutation.isPending ? (
@@ -1119,6 +1171,14 @@ function MapaCotacaoPage() {
             <DialogTitle>Confirmar Faturamento de Itens</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {requisicao && requisicao.status !== 'pendente' && (
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-lg text-xs flex gap-2 items-start mb-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Atenção:</strong> Esta requisição já está com o status <strong>{requisicao.status === 'comprado' ? 'Aguardando entrega' : requisicao.status === 'parcial' ? 'Recebido parcial' : 'Entregue'}</strong>. Se você confirmar, novos lançamentos de compras serão gerados, o que pode causar duplicidade de itens se já tiverem sido gerados antes.
+                </div>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               Para cada fornecedor ganhador de cotação, informe os dados complementares antes de registrar na tabela de compras.
             </p>

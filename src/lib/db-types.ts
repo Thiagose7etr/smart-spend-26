@@ -52,7 +52,7 @@ export type Requisicao = {
   centro_custo: string;
   data: string;
   solicitante: string;
-  status: "pendente" | "comprado" | "entregue";
+  status: "pendente" | "comprado" | "parcial" | "entregue";
   observacao?: string | null;
   created_at?: string;
   updated_at?: string;
