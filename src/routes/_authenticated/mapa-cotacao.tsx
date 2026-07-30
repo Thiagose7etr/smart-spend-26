@@ -383,13 +383,9 @@ function MapaCotacaoPage() {
     },
   });
 
-  // Abre o modal de Gerar Compras e inicializa as variáveis de faturamento
+    // Abre o modal de Gerar Compras e inicializa as variáveis de faturamento
   const openGerarCompras = () => {
     if (!requisicao) return;
-    if (requisicao.status !== "pendente") {
-      toast.error("Esta requisição já foi finalizada.");
-      return;
-    }
     const initialFaturamentos: { [fornecedor: string]: FornecedorFaturamento } = {};
     
     // Identifica fornecedores ganhadores selecionados
@@ -1146,24 +1142,13 @@ function MapaCotacaoPage() {
                     <Button
                       type="button"
                       onClick={openGerarCompras}
-                      disabled={gerarComprasMutation.isPending || requisicao.status !== "pendente"}
+                      disabled={gerarComprasMutation.isPending}
                       className="text-primary-foreground border-0 gap-2"
-                      style={{ 
-                        background: requisicao.status !== "pendente" 
-                          ? "hsl(var(--muted))" 
-                          : "var(--gradient-primary)",
-                        color: requisicao.status !== "pendente" 
-                          ? "hsl(var(--muted-foreground))" 
-                          : undefined
-                      }}
+                      style={{ background: "var(--gradient-primary)" }}
                     >
                       {gerarComprasMutation.isPending ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" /> Salvando cotação…
-                        </>
-                      ) : requisicao.status !== "pendente" ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" /> Cotação Finalizada (Compras Geradas)
                         </>
                       ) : (
                         <>
@@ -1186,6 +1171,14 @@ function MapaCotacaoPage() {
             <DialogTitle>Confirmar Faturamento de Itens</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {requisicao && requisicao.status !== 'pendente' && (
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-lg text-xs flex gap-2 items-start mb-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Atenção:</strong> Esta requisição já está com o status <strong>{requisicao.status === 'comprado' ? 'Aguardando entrega' : requisicao.status === 'parcial' ? 'Recebido parcial' : 'Entregue'}</strong>. Se você confirmar, novos lançamentos de compras serão gerados, o que pode causar duplicidade de itens se já tiverem sido gerados antes.
+                </div>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               Para cada fornecedor ganhador de cotação, informe os dados complementares antes de registrar na tabela de compras.
             </p>
