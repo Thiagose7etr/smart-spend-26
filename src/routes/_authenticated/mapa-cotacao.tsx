@@ -28,6 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, GitCompare, FileDown, Printer, Loader2, Trash2, Trophy, CheckCircle2, ShieldAlert, Save, FolderOpen, AlertCircle, ShoppingCart, PackageOpen } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -123,6 +124,9 @@ function MapaCotacaoPage() {
   const [modalGerarOpen, setModalGerarOpen] = useState(false);
   const [faturamentos, setFaturamentos] = useState<{ [fornecedor: string]: FornecedorFaturamento }>({});
 
+  const [itensComprados, setItensComprados] = useState<string[]>([]);
+  const [selectedItensIds, setSelectedItensIds] = useState<string[]>([]);
+
   // Carrega rascunho de cotação se houver no banco
   useEffect(() => {
     if (requisicao) {
@@ -131,10 +135,12 @@ function MapaCotacaoPage() {
         setFornecedores(cot.fornecedores || ["FORNECEDOR A", "FORNECEDOR B"]);
         setPrecos(cot.precos || {});
         setVencedoresManuais(cot.vencedoresManuais || {});
+        setItensComprados(cot.itensComprados || []);
       } else {
         setFornecedores(["FORNECEDOR A", "FORNECEDOR B"]);
         setPrecos({});
         setVencedoresManuais({});
+        setItensComprados([]);
       }
     }
   }, [requisicao]);
@@ -375,6 +381,7 @@ function MapaCotacaoPage() {
         setFornecedores(["FORNECEDOR A", "FORNECEDOR B"]);
         setPrecos({});
         setVencedoresManuais({});
+        setItensComprados([]);
       }
       toast.success("Cotação excluída com sucesso!");
     },
@@ -383,24 +390,33 @@ function MapaCotacaoPage() {
     },
   });
 
-    // Abre o modal de Gerar Compras e inicializa as variáveis de faturamento
+  // Abre o modal de Gerar Compras e inicializa as variáveis de faturamento
   const openGerarCompras = () => {
     if (!requisicao) return;
+
+    // Filtra itens pendentes (não comprados) que já têm vencedor definido
+    const itensPendentesComVencedor = itens.filter(
+      (it) => resolvedVencedores[it.id] && !itensComprados.includes(it.id)
+    );
+
+    if (itensPendentesComVencedor.length === 0) {
+      toast.error("Não há novos itens com vencedores para faturar.");
+      return;
+    }
+
+    // Inicialmente seleciona todos os itens pendentes que possuem vencedor
+    const initialSelected = itensPendentesComVencedor.map((it) => it.id);
+    setSelectedItensIds(initialSelected);
+
     const initialFaturamentos: { [fornecedor: string]: FornecedorFaturamento } = {};
-    
-    // Identifica fornecedores ganhadores selecionados
     const ganhadores = new Set<string>();
-    itens.forEach((it) => {
+    
+    itensPendentesComVencedor.forEach((it) => {
       const win = resolvedVencedores[it.id];
       if (win) {
         ganhadores.add(win.fornecedor);
       }
     });
-
-    if (ganhadores.size === 0) {
-      toast.error("Preencha as cotações e selecione os vencedores antes de gerar as compras.");
-      return;
-    }
 
     // Tenta sugerir placa de frota com base no Centro de Custo da requisição
     const cc = requisicao.centro_custo || "";
@@ -420,6 +436,21 @@ function MapaCotacaoPage() {
     setModalGerarOpen(true);
   };
 
+  // Mapeia os itens ativos selecionados para faturamento agrupados por fornecedor vencedor
+  const activeWinners = useMemo(() => {
+    const map: { [fornecedor: string]: any[] } = {};
+    itens.forEach((it) => {
+      const win = resolvedVencedores[it.id];
+      if (win && selectedItensIds.includes(it.id) && !itensComprados.includes(it.id)) {
+        if (!map[win.fornecedor]) {
+          map[win.fornecedor] = [];
+        }
+        map[win.fornecedor].push({ ...it, price: win.preco });
+      }
+    });
+    return map;
+  }, [itens, resolvedVencedores, selectedItensIds, itensComprados]);
+
   // Mutation para salvar compras no banco
   const gerarComprasMutation = useMutation({
     mutationFn: async () => {
@@ -433,42 +464,60 @@ function MapaCotacaoPage() {
       const anoNum = parseInt(parts[0], 10);
 
       itens.forEach((it) => {
-        const win = resolvedVencedores[it.id];
-        if (win) {
-          const forn = win.fornecedor;
-          const fat = faturamentos[forn];
-          if (fat) {
-            rows.push({
-              nf: fat.nf || `COT-${requisicao?.numero}`,
-              fornecedor: forn,
-              data_emissao: infoData,
-              item: it.descricao,
-              quant: it.quantidade,
-              valor_unit: win.preco,
-              valor_total: it.quantidade * win.preco,
-              frota: fat.frota || null,
-              prazo_pag: fat.prazo || null,
-              tipo: fat.categoria || "PEÇAS",
-              mes: mesName,
-              ano: anoNum,
-            });
+        // Verifica se o item está selecionado e NÃO foi faturado antes
+        if (selectedItensIds.includes(it.id) && !itensComprados.includes(it.id)) {
+          const win = resolvedVencedores[it.id];
+          if (win) {
+            const forn = win.fornecedor;
+            const fat = faturamentos[forn];
+            if (fat) {
+              rows.push({
+                nf: fat.nf || `COT-${requisicao?.numero}`,
+                fornecedor: forn,
+                data_emissao: infoData,
+                item: it.descricao,
+                quant: it.quantidade,
+                valor_unit: win.preco,
+                valor_total: it.quantidade * win.preco,
+                frota: fat.frota || null,
+                prazo_pag: fat.prazo || null,
+                tipo: fat.categoria || "PEÇAS",
+                mes: mesName,
+                ano: anoNum,
+              });
+            }
           }
         }
       });
+
+      if (rows.length === 0) {
+        throw new Error("Nenhum item selecionado ou sem dados de faturamento.");
+      }
 
       // 1. Inserir compras
       const { error: insErr } = await sbFrom("compras").insert(rows);
       if (insErr) throw insErr;
 
-      // 2. Atualizar status da requisição para 'comprado' e salvar a cotação correspondente
+      // 2. Atualizar lista de itens comprados acumulados
+      const novosItensComprados = [
+        ...itensComprados,
+        ...selectedItensIds.filter((id) => !itensComprados.includes(id))
+      ];
+
+      // Se todos os itens da requisição estiverem comprados, muda para 'comprado'. Senão, 'parcial'.
+      const todosComprados = itens.every((it) => novosItensComprados.includes(it.id));
+      const novoStatus = todosComprados ? "comprado" : "parcial";
+
       const cotacaoPayload = {
         fornecedores,
         precos,
         vencedoresManuais,
+        itensComprados: novosItensComprados,
       };
+
       const { error: updErr } = await sbFrom("requisicoes")
         .update({ 
-          status: "comprado",
+          status: novoStatus,
           cotacao: cotacaoPayload
         })
         .eq("id", requisicao!.id);
@@ -480,7 +529,18 @@ function MapaCotacaoPage() {
       qc.invalidateQueries({ queryKey: ["requisicoes-rascunhos"] });
       qc.invalidateQueries({ queryKey: ["compras"] });
       setModalGerarOpen(false);
-      toast.success("Compras geradas e Requisição marcada como COMPRADA!");
+
+      const novosItensComprados = [
+        ...itensComprados,
+        ...selectedItensIds.filter((id) => !itensComprados.includes(id))
+      ];
+      const todosComprados = itens.every((it) => novosItensComprados.includes(it.id));
+
+      if (todosComprados) {
+        toast.success("Compras geradas e Requisição marcada como COMPRADA!");
+      } else {
+        toast.success("Compras parciais geradas! Requisição marcada como PARCIAL.");
+      }
     },
     onError: (e: any) => {
       toast.error("Erro ao gerar compras: " + e.message);
@@ -1051,7 +1111,16 @@ function MapaCotacaoPage() {
 
                         return (
                           <TableRow key={it.id} className="hover:bg-[#0c0d10]/20">
-                            <TableCell className="font-medium text-xs py-3">{it.descricao}</TableCell>
+                            <TableCell className="font-medium text-xs py-3">
+                              <div className="flex items-center gap-2">
+                                {itensComprados.includes(it.id) && (
+                                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] px-1 py-0 shrink-0">
+                                    Lançado
+                                  </Badge>
+                                )}
+                                <span>{it.descricao}</span>
+                              </div>
+                            </TableCell>
                             <TableCell className="text-center font-semibold text-xs py-3">{it.quantidade}</TableCell>
                             {fornecedores.map((forn, colIdx) => {
                               const precoVal = precos[it.id]?.[forn] ?? "";
@@ -1070,6 +1139,7 @@ function MapaCotacaoPage() {
                                         value={precoVal || ""}
                                         onChange={(e) => handleUpdatePreco(it.id, forn, e.target.value)}
                                         placeholder="0,00"
+                                        disabled={itensComprados.includes(it.id)}
                                         className={`h-8 pl-7 pr-2 text-right text-xs font-mono ${
                                           isWin ? "border-emerald-500/60 bg-emerald-500/5 text-emerald-400 font-semibold" : ""
                                         }`}
@@ -1079,8 +1149,11 @@ function MapaCotacaoPage() {
                                       {Number(precoVal) > 0 ? (
                                         <button
                                           type="button"
+                                          disabled={itensComprados.includes(it.id)}
                                           onClick={() => setVencedoresManuais(prev => ({ ...prev, [it.id]: forn }))}
                                           className={`flex items-center gap-1 transition-all ${
+                                            itensComprados.includes(it.id) ? "opacity-60 cursor-not-allowed" : ""
+                                          } ${
                                             isWin
                                               ? "text-emerald-400 font-semibold"
                                               : "text-muted-foreground/60 hover:text-emerald-400"
@@ -1142,13 +1215,17 @@ function MapaCotacaoPage() {
                     <Button
                       type="button"
                       onClick={openGerarCompras}
-                      disabled={gerarComprasMutation.isPending}
+                      disabled={gerarComprasMutation.isPending || itens.every((it) => itensComprados.includes(it.id))}
                       className="text-primary-foreground border-0 gap-2"
                       style={{ background: "var(--gradient-primary)" }}
                     >
                       {gerarComprasMutation.isPending ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" /> Salvando cotação…
+                        </>
+                      ) : itens.every((it) => itensComprados.includes(it.id)) ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Todos lançamentos gerados
                         </>
                       ) : (
                         <>
@@ -1171,28 +1248,60 @@ function MapaCotacaoPage() {
             <DialogTitle>Confirmar Faturamento de Itens</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {requisicao && requisicao.status !== 'pendente' && (
-              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-lg text-xs flex gap-2 items-start mb-2">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <div>
-                  <strong>Atenção:</strong> Esta requisição já está com o status <strong>{requisicao.status === 'comprado' ? 'Aguardando entrega' : requisicao.status === 'parcial' ? 'Recebido parcial' : 'Entregue'}</strong>. Se você confirmar, novos lançamentos de compras serão gerados, o que pode causar duplicidade de itens se já tiverem sido gerados antes.
-                </div>
-              </div>
-            )}
             <p className="text-xs text-muted-foreground">
-              Para cada fornecedor ganhador de cotação, informe os dados complementares antes de registrar na tabela de compras.
+              Selecione quais itens deseja faturar/lançar nesta rodada e informe os dados complementares dos fornecedores ganhadores.
             </p>
-            <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-              {Object.keys(faturamentos).map((forn) => {
-                const fat = faturamentos[forn];
+            <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
+              {Object.keys(activeWinners).map((forn) => {
+                const fat = faturamentos[forn] || { nf: "", prazo: "30", frota: "", categoria: "PEÇAS" };
+                const itemsForFornecedor = activeWinners[forn];
+                const totalFornecedor = itemsForFornecedor.reduce((s, it) => s + (it.quantidade * it.price), 0);
                 return (
                   <div key={forn} className="border border-border/40 p-4 rounded-lg bg-[#0c0d10]/20 space-y-3">
                     <div className="font-semibold text-sm text-primary flex items-center justify-between border-b border-border/30 pb-1.5">
                       <span>{forn}</span>
                       <span className="text-xs font-mono text-muted-foreground">
-                        Total: {fmtBRL(totaisPorFornecedor[forn])}
+                        Subtotal: {fmtBRL(totalFornecedor)}
                       </span>
                     </div>
+
+                    {/* Itens do fornecedor */}
+                    <div className="space-y-2 py-1.5 border-b border-border/20">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Itens para Lançamento:</Label>
+                      {itens
+                        .filter((it) => resolvedVencedores[it.id]?.fornecedor === forn && !itensComprados.includes(it.id))
+                        .map((it) => {
+                          const isSelected = selectedItensIds.includes(it.id);
+                          const win = resolvedVencedores[it.id]!;
+                          return (
+                            <div key={it.id} className="flex items-center gap-2 text-xs py-1">
+                              <Checkbox 
+                                id={`chk-${it.id}`} 
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedItensIds([...selectedItensIds, it.id]);
+                                    if (!faturamentos[forn]) {
+                                      setFaturamentos(prev => ({
+                                        ...prev,
+                                        [forn]: { nf: "", prazo: "30", frota: "", categoria: "PEÇAS" }
+                                      }));
+                                    }
+                                  } else {
+                                    setSelectedItensIds(selectedItensIds.filter((id) => id !== it.id));
+                                  }
+                                }}
+                                className="h-4 w-4 border-primary"
+                              />
+                              <Label htmlFor={`chk-${it.id}`} className="font-normal cursor-pointer flex-1 flex justify-between items-center text-xs">
+                                <span className="text-muted-foreground/90">{it.descricao} (Qtd: {it.quantidade})</span>
+                                <span className="font-semibold text-emerald-400">{fmtBRL(win.preco * it.quantidade)}</span>
+                              </Label>
+                            </div>
+                          );
+                        })}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <Label className="text-[10px]">Nota Fiscal (Opcional)</Label>
@@ -1249,6 +1358,11 @@ function MapaCotacaoPage() {
                   </div>
                 );
               })}
+              {Object.keys(activeWinners).length === 0 && (
+                <div className="text-center py-6 text-sm text-muted-foreground">
+                  Nenhum item selecionado para lançamento.
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -1257,7 +1371,7 @@ function MapaCotacaoPage() {
             </Button>
             <Button
               onClick={() => gerarComprasMutation.mutate()}
-              disabled={gerarComprasMutation.isPending}
+              disabled={gerarComprasMutation.isPending || selectedItensIds.filter(id => !itensComprados.includes(id)).length === 0}
               className="text-primary-foreground border-0"
               style={{ background: "var(--gradient-primary)" }}
             >
