@@ -110,7 +110,9 @@ function MapaCotacaoPage() {
   });
 
   const rascunhos = useMemo(() => {
-    return todasRequisicoes.filter((r) => r.cotacao !== null && r.cotacao !== undefined);
+    return todasRequisicoes.filter(
+      (r) => r.cotacao !== null && r.cotacao !== undefined && r.status !== "entregue"
+    );
   }, [todasRequisicoes]);
 
   // Estados da Matriz de Cotação
