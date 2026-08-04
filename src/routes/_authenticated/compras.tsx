@@ -109,6 +109,14 @@ function ComprasPage() {
   const [filtroEquipamento, setFiltroEquipamento] = useState<string>("todos");
   const [filtroFornecedor, setFiltroFornecedor] = useState<string>("todos");
   const [filtroItem, setFiltroItem] = useState<string>("todos");
+  const [ordenacao, setOrdenacao] = useState<string>("data-dec");
+  const [itensPorPagina, setItensPorPagina] = useState<number>(20);
+  const [paginaAtual, setPaginaAtual] = useState<number>(0);
+
+  // Reseta para a primeira página quando filtros mudarem
+  useEffect(() => {
+    setPaginaAtual(0);
+  }, [busca, filtroTipo, filtroMes, filtroAno, filtroFrota, filtroEquipamento, filtroFornecedor, filtroItem, ordenacao, itensPorPagina]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [scanLoading, setScanLoading] = useState(false);
@@ -483,6 +491,26 @@ function ComprasPage() {
 
   const total = filtrados.reduce((s, c) => s + Number(c.valor_total || 0), 0);
 
+  const ordenados = useMemo(() => {
+    const list = [...filtrados];
+    if (ordenacao === "data-dec") {
+      list.sort((a, b) => new Date(b.data_emissao || 0).getTime() - new Date(a.data_emissao || 0).getTime());
+    } else if (ordenacao === "data-cres") {
+      list.sort((a, b) => new Date(a.data_emissao || 0).getTime() - new Date(b.data_emissao || 0).getTime());
+    } else if (ordenacao === "valor-dec") {
+      list.sort((a, b) => Number(b.valor_total || 0) - Number(a.valor_total || 0));
+    } else if (ordenacao === "valor-cres") {
+      list.sort((a, b) => Number(a.valor_total || 0) - Number(b.valor_total || 0));
+    }
+    return list;
+  }, [filtrados, ordenacao]);
+
+  const exibidos = useMemo(() => {
+    const start = paginaAtual * itensPorPagina;
+    const end = start + itensPorPagina;
+    return ordenados.slice(start, end);
+  }, [ordenados, paginaAtual, itensPorPagina]);
+
   const tiposUnicos = Array.from(new Set([...CATEGORIAS, ...compras.map((c) => c.tipo).filter(Boolean) as string[]])).sort();
   const anosUnicos = Array.from(new Set(compras.map((c) => c.ano).filter(Boolean))) as number[];
   anosUnicos.sort((a, b) => b - a);
@@ -584,7 +612,7 @@ function ComprasPage() {
   const exportCsv = () => {
     const rows = [
       ["NF", "Fornecedor", "Data", "Item", "Quant", "V. Unit", "V. Total", "Frota", "Prazo", "Tipo"],
-      ...filtrados.map((c) => [
+      ...ordenados.map((c) => [
         c.nf || "",
         c.fornecedor || "",
         c.data_emissao || "",
@@ -785,6 +813,28 @@ function ComprasPage() {
               {itensUnicos.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
             </SelectContent>
           </Select>
+
+          <div className="h-6 w-px bg-border/40 self-center hidden lg:block" />
+
+          <Select value={ordenacao} onValueChange={setOrdenacao}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Ordenar por" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="data-dec">Data: Mais recente</SelectItem>
+              <SelectItem value="data-cres">Data: Mais antiga</SelectItem>
+              <SelectItem value="valor-dec">Valor: Maior para Menor</SelectItem>
+              <SelectItem value="valor-cres">Valor: Menor para Maior</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={String(itensPorPagina)} onValueChange={(v) => setItensPorPagina(Number(v))}>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Itens por página" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 por página</SelectItem>
+              <SelectItem value="20">20 por página</SelectItem>
+              <SelectItem value="50">50 por página</SelectItem>
+              <SelectItem value="100">100 por página</SelectItem>
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
@@ -812,7 +862,7 @@ function ComprasPage() {
               {!isLoading && filtrados.length === 0 && (
                 <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">Nenhum lançamento encontrado.</TableCell></TableRow>
               )}
-              {filtrados.slice(0, 500).map((c) => (
+              {exibidos.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-mono text-xs">{c.nf || "-"}</TableCell>
                   <TableCell className="font-medium">{c.fornecedor || "-"}</TableCell>
@@ -823,27 +873,25 @@ function ComprasPage() {
                   <TableCell className="text-right tabular-nums">{c.quant ?? "-"}</TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">{fmtBRL(c.valor_unit)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{fmtBRL(c.valor_total)}</TableCell>
-                  <TableCell className="text-xs">{c.frota || "-"}</TableCell>
-                  <TableCell>
-                    {c.tipo && <Badge variant="secondary" className="text-[10px] font-medium">{c.tipo}</Badge>}
-                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{c.frota || "-"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{c.tipo || "-"}</TableCell>
                   {canEdit && (
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditar(c)}>
+                      <div className="flex justify-end gap-1.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer" onClick={() => openEditar(c)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer">
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir compra?</AlertDialogTitle>
+                              <AlertDialogTitle>Excluir Lançamento?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. {c.fornecedor} - {c.item}
+                                Esta ação não pode ser desfeita. O lançamento da NF {c.nf || "-"} no valor de {fmtBRL(c.valor_total)} será excluído permanentemente do banco de dados.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -862,9 +910,62 @@ function ComprasPage() {
             </TableBody>
           </Table>
         </div>
-        {filtrados.length > 500 && (
-          <div className="p-3 text-center text-xs text-muted-foreground border-t border-border">
-            Mostrando 500 de {filtrados.length} resultados — refine os filtros para ver mais.
+
+        {ordenados.length > 0 && (
+          <div className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/40 bg-[#0c0d10]/20 text-xs">
+            <div className="text-muted-foreground">
+              Exibindo <span className="font-semibold text-foreground">{paginaAtual * itensPorPagina + 1}</span> a{" "}
+              <span className="font-semibold text-foreground">
+                {Math.min((paginaAtual + 1) * itensPorPagina, ordenados.length)}
+              </span>{" "}
+              de <span className="font-semibold text-foreground">{ordenados.length}</span> lançamentos
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs cursor-pointer"
+                onClick={() => setPaginaAtual((p) => Math.max(0, p - 1))}
+                disabled={paginaAtual === 0}
+              >
+                Anterior
+              </Button>
+              
+              {Array.from({ length: Math.min(5, Math.ceil(ordenados.length / itensPorPagina)) }, (_, i) => {
+                const totalPages = Math.ceil(ordenados.length / itensPorPagina);
+                let pageToShow = i;
+                if (totalPages > 5) {
+                  if (paginaAtual >= 3 && paginaAtual < totalPages - 2) {
+                    pageToShow = paginaAtual - 2 + i;
+                  } else if (paginaAtual >= totalPages - 2) {
+                    pageToShow = totalPages - 5 + i;
+                  }
+                }
+                const isActive = pageToShow === paginaAtual;
+                return (
+                  <Button
+                    key={pageToShow}
+                    variant={isActive ? "default" : "outline"}
+                    size="sm"
+                    className={`h-8 w-8 text-xs cursor-pointer ${isActive ? "text-primary-foreground font-bold" : ""}`}
+                    style={isActive ? { background: "var(--gradient-primary)", border: "0" } : {}}
+                    onClick={() => setPaginaAtual(pageToShow)}
+                  >
+                    {pageToShow + 1}
+                  </Button>
+                );
+              })}
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs cursor-pointer"
+                onClick={() => setPaginaAtual((p) => Math.min(Math.ceil(ordenados.length / itensPorPagina) - 1, p + 1))}
+                disabled={paginaAtual === Math.ceil(ordenados.length / itensPorPagina) - 1}
+              >
+                Próximo
+              </Button>
+            </div>
           </div>
         )}
       </Card>
