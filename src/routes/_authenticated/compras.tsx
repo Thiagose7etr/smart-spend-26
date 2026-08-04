@@ -109,14 +109,15 @@ function ComprasPage() {
   const [filtroEquipamento, setFiltroEquipamento] = useState<string>("todos");
   const [filtroFornecedor, setFiltroFornecedor] = useState<string>("todos");
   const [filtroItem, setFiltroItem] = useState<string>("todos");
-  const [ordenacao, setOrdenacao] = useState<string>("data-dec");
+  const [ordenacaoCampo, setOrdenacaoCampo] = useState<string>("data_emissao");
+  const [ordenacaoDirecao, setOrdenacaoDirecao] = useState<"asc" | "desc">("desc");
   const [itensPorPagina, setItensPorPagina] = useState<number>(20);
   const [paginaAtual, setPaginaAtual] = useState<number>(0);
 
   // Reseta para a primeira página quando filtros mudarem
   useEffect(() => {
     setPaginaAtual(0);
-  }, [busca, filtroTipo, filtroMes, filtroAno, filtroFrota, filtroEquipamento, filtroFornecedor, filtroItem, ordenacao, itensPorPagina]);
+  }, [busca, filtroTipo, filtroMes, filtroAno, filtroFrota, filtroEquipamento, filtroFornecedor, filtroItem, ordenacaoCampo, ordenacaoDirecao, itensPorPagina]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [scanLoading, setScanLoading] = useState(false);
@@ -308,10 +309,16 @@ function ComprasPage() {
 
           const itemVal = colMap.item ? String(row[colMap.item] ?? "").trim() : null;
           const quantVal = colMap.quant ? parseExcelNumber(row[colMap.quant]) : 1;
-          const unitVal = colMap.valor_unit ? parseExcelNumber(row[colMap.valor_unit]) : 0;
+          let unitVal = colMap.valor_unit ? parseExcelNumber(row[colMap.valor_unit]) : 0;
           let totalVal = colMap.valor_total ? parseExcelNumber(row[colMap.valor_total]) : 0;
           
-          if (!totalVal && unitVal) {
+          if (quantVal && unitVal) {
+            // Se tiver quantidade e valor unitário, o total do item deve ser sempre Qtd * Unitário
+            totalVal = quantVal * unitVal;
+          } else if (totalVal && quantVal && !unitVal) {
+            // Se tiver total e quantidade, mas não unitário, calcula o unitário
+            unitVal = quantVal > 0 ? totalVal / quantVal : 0;
+          } else if (!totalVal && unitVal) {
             totalVal = quantVal * unitVal;
           }
 
@@ -491,25 +498,66 @@ function ComprasPage() {
 
   const total = filtrados.reduce((s, c) => s + Number(c.valor_total || 0), 0);
 
+  const handleSort = (field: string) => {
+    if (ordenacaoCampo === field) {
+      setOrdenacaoDirecao((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setOrdenacaoCampo(field);
+      setOrdenacaoDirecao(field === "data_emissao" || field === "quant" || field === "valor_unit" || field === "valor_total" ? "desc" : "asc");
+    }
+  };
+
   const ordenados = useMemo(() => {
     const list = [...filtrados];
-    if (ordenacao === "data-dec") {
-      list.sort((a, b) => new Date(b.data_emissao || 0).getTime() - new Date(a.data_emissao || 0).getTime());
-    } else if (ordenacao === "data-cres") {
-      list.sort((a, b) => new Date(a.data_emissao || 0).getTime() - new Date(b.data_emissao || 0).getTime());
-    } else if (ordenacao === "valor-dec") {
-      list.sort((a, b) => Number(b.valor_total || 0) - Number(a.valor_total || 0));
-    } else if (ordenacao === "valor-cres") {
-      list.sort((a, b) => Number(a.valor_total || 0) - Number(b.valor_total || 0));
-    }
+    list.sort((a: any, b: any) => {
+      let aVal = a[ordenacaoCampo];
+      let bVal = b[ordenacaoCampo];
+
+      if (ordenacaoCampo === "data_emissao") {
+        const timeA = new Date(aVal || 0).getTime();
+        const timeB = new Date(bVal || 0).getTime();
+        return ordenacaoDirecao === "asc" ? timeA - timeB : timeB - timeA;
+      }
+      
+      if (["quant", "valor_unit", "valor_total", "ano"].includes(ordenacaoCampo)) {
+        const numA = Number(aVal || 0);
+        const numB = Number(bVal || 0);
+        return ordenacaoDirecao === "asc" ? numA - numB : numB - numA;
+      }
+
+      const strA = String(aVal || "").trim().toLowerCase();
+      const strB = String(bVal || "").trim().toLowerCase();
+      return ordenacaoDirecao === "asc" 
+        ? strA.localeCompare(strB, "pt-BR") 
+        : strB.localeCompare(strA, "pt-BR");
+    });
     return list;
-  }, [filtrados, ordenacao]);
+  }, [filtrados, ordenacaoCampo, ordenacaoDirecao]);
 
   const exibidos = useMemo(() => {
     const start = paginaAtual * itensPorPagina;
     const end = start + itensPorPagina;
     return ordenados.slice(start, end);
   }, [ordenados, paginaAtual, itensPorPagina]);
+
+  const renderSortHeader = (label: string, field: string, align: "left" | "right" = "left", className = "") => {
+    const isActive = ordenacaoCampo === field;
+    return (
+      <TableHead 
+        onClick={() => handleSort(field)}
+        className={`cursor-pointer select-none hover:text-foreground hover:bg-[#0c0d10]/20 transition-colors py-3 ${align === "right" ? "text-right" : ""} ${className}`}
+      >
+        <div className={`flex items-center gap-1 ${align === "right" ? "justify-end" : ""}`}>
+          <span>{label}</span>
+          {isActive && (
+            <span className="text-[10px] text-primary">
+              {ordenacaoDirecao === "asc" ? "▲" : "▼"}
+            </span>
+          )}
+        </div>
+      </TableHead>
+    );
+  };
 
   const tiposUnicos = Array.from(new Set([...CATEGORIAS, ...compras.map((c) => c.tipo).filter(Boolean) as string[]])).sort();
   const anosUnicos = Array.from(new Set(compras.map((c) => c.ano).filter(Boolean))) as number[];
@@ -816,16 +864,6 @@ function ComprasPage() {
 
           <div className="h-6 w-px bg-border/40 self-center hidden lg:block" />
 
-          <Select value={ordenacao} onValueChange={setOrdenacao}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Ordenar por" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="data-dec">Data: Mais recente</SelectItem>
-              <SelectItem value="data-cres">Data: Mais antiga</SelectItem>
-              <SelectItem value="valor-dec">Valor: Maior para Menor</SelectItem>
-              <SelectItem value="valor-cres">Valor: Menor para Maior</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Select value={String(itensPorPagina)} onValueChange={(v) => setItensPorPagina(Number(v))}>
             <SelectTrigger className="w-[150px]"><SelectValue placeholder="Itens por página" /></SelectTrigger>
             <SelectContent>
@@ -843,15 +881,15 @@ function ComprasPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[100px]">NF</TableHead>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Item</TableHead>
-                <TableHead className="w-[110px]">Data</TableHead>
-                <TableHead className="w-[80px] text-right">Qtd</TableHead>
-                <TableHead className="w-[120px] text-right">Unitário</TableHead>
-                <TableHead className="w-[120px] text-right">Total</TableHead>
-                <TableHead className="w-[80px]">Frota</TableHead>
-                <TableHead className="w-[140px]">Tipo</TableHead>
+                {renderSortHeader("NF", "nf", "left", "w-[100px]")}
+                {renderSortHeader("Fornecedor", "fornecedor")}
+                {renderSortHeader("Item", "item")}
+                {renderSortHeader("Data", "data_emissao", "left", "w-[110px]")}
+                {renderSortHeader("Qtd", "quant", "right", "w-[80px]")}
+                {renderSortHeader("Unitário", "valor_unit", "right", "w-[120px]")}
+                {renderSortHeader("Total", "valor_total", "right", "w-[120px]")}
+                {renderSortHeader("Frota", "frota", "left", "w-[80px]")}
+                {renderSortHeader("Tipo", "tipo", "left", "w-[140px]")}
                 {canEdit && <TableHead className="w-[80px]" />}
               </TableRow>
             </TableHeader>
