@@ -42,7 +42,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Pencil, Trash2, FileDown, ScanLine, Loader2, FileSpreadsheet, ShieldAlert } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { fmtBRL, MESES, CATEGORIAS, mesFromDate, sbFrom, formatLocalDateString, formatEquipmentType, formatSupplierName, type Compra } from "@/lib/db-types";
 import { useServerFn } from "@tanstack/react-start";
